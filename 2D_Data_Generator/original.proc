@@ -1,0 +1,32 @@
+*full_reset *new_model yes *add_nodes
+*set_element_class tria3
+*add_elements
+1 2 3
+3 4 1
+4 5 1
+*sub_uvwdiv u 20
+*sub_uvwdiv v 20
+*sub_uvwdiv w 1
+*subdivide_elements all_existing
+*sweep_all
+*new_geometry
+*geometry_name p_stress
+*geometry_type mech_planar_pstress
+*add_geometry_elements all_existing
+*new_mater standard *mater_option general:state:solid *mater_option general:skip_structural:off
+*mater_name user_defined_mat
+*mater_param structural:youngs_modulus 72999
+*mater_param structural:poissons_ratio 0.32
+*add_mater_elements all_existing
+*new_job *job_class structural
+*job_name load1
+*job_option elastic:on
+*add_post_var von_mises
+*add_post_var eel_strain
+*add_post_tensor strain
+*add_post_tensor stress
+*job_option dimen:pstress
+*renumber_all
+*set_save_formatted off *save_as_model "load1.mud" yes
+*job_write_input yes #
+*quit yes #

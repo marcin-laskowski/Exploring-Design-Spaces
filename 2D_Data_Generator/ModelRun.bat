@@ -1,0 +1,1 @@
+call C:\MSC.Software\Marc\2017.0.0\marc2017\tools\run_marc.bat -j load1_load1.dat -back no
