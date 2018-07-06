@@ -3,6 +3,7 @@ points_to_image - func that convert InpuParams.txt to matrix with values 0 and 1
 stress_to_image - func that create matrix with values from 0 to 1 based on vonMises
 automate_points_stress - create two 3D matrices with polygon and stress values
 get_params - create matrix with the input parameters based on InputParams.txt
+automate_get_params - create 3D matrix with all input parameters
 
 """
 
@@ -20,10 +21,9 @@ from scipy.interpolate import griddata
 ###################################################################################
 
 def points_to_image(file_name, input_poly, img_size, save_png=False, image_num=0):
-
     """
     FUNCTION THAT CREATES POINTS TO MATRIX WITH 0 AND 1
-    
+
     file_name: polygon coordinates from the file: 'input_params.txt'
     input_poly: type of polygon (eg. input_polygon = 5, when we have pentagon)
     img_size: intiger value (eg. img_size = 128)
@@ -160,9 +160,8 @@ def points_to_image(file_name, input_poly, img_size, save_png=False, image_num=0
 
 ###################################################################################
 ###################################################################################
-    
-def stress_to_image(stress_name, pentagon_matrix, img_size, save_png=False, image_num=0):
 
+def stress_to_image(stress_name, pentagon_matrix, img_size, save_png=False, image_num=0):
     """
     stress_name: .txt file with X, Y, Z and VonMises Stresses
     pentagon_name: .txt with the input values of the pentagon
@@ -177,8 +176,7 @@ def stress_to_image(stress_name, pentagon_matrix, img_size, save_png=False, imag
     save_jpg = False
     img_num = 1
     """
-    
-    
+
     # =========================== INPUT DATA ======================================
 
     # open and read file
@@ -194,7 +192,7 @@ def stress_to_image(stress_name, pentagon_matrix, img_size, save_png=False, imag
         stress[i, 0] = float(split_line[0])  # x-coordinate
         stress[i, 1] = float(split_line[1])  # y-coordinate
         stress[i, 2] = float(split_line[3])  # vonMises stress values
-        
+
 #    print(stress)
 
     # =========================== RESCALE COORDINATES ==============================
@@ -234,24 +232,22 @@ def stress_to_image(stress_name, pentagon_matrix, img_size, save_png=False, imag
     grid_z0 = griddata(res_mat[:, 0:2], res_mat[:, 2], (grid_y, grid_x), method='nearest')
     grid_z1 = griddata(res_mat[:, 0:2], res_mat[:, 2], (grid_y, grid_x), method='linear')
     grid_z2 = griddata(res_mat[:, 0:2], res_mat[:, 2], (grid_y, grid_x), method='cubic')
-    
+
     # obtain stress with the same shape as pentagon
     grid_z3 = np.zeros((img_size, img_size))
-    
+
     for y in range(img_size):
         for x in range(img_size):
             if pentagon_matrix[y, x] == 1:
                 grid_z3[y, x] = grid_z0[y, x]
             else:
                 grid_z3[y, x] = str('nan')
-    
+
     # choose method that you want to use
     vonMises_output = grid_z3
 
     # substitute Nan with zero
     vonMises_output = np.nan_to_num(vonMises_output)
-    
-    
 
     # ========================= SAVE AS .MAT FILE =================================
 
@@ -279,7 +275,6 @@ def stress_to_image(stress_name, pentagon_matrix, img_size, save_png=False, imag
 
         return vonMises_output
 
-
     # ===================== VISUALIZATION OF THE METHODS ======================
 
 #    plt.subplot(221)
@@ -296,9 +291,8 @@ def stress_to_image(stress_name, pentagon_matrix, img_size, save_png=False, imag
 #    plt.title('NewShape')
 #    plt.gcf().set_size_inches(6, 6)
 #    plt.show()
-    
-    
-    
+
+
 ###################################################################################
 ###################################################################################
 
@@ -329,8 +323,8 @@ def automate_points_stress(number_of_elements, img_size):
     # in_tensor = torch.tensor(in_tensor)
     # out_tensor = torch.tensor(out_tensor)
 
-    sio.savemat('in_tensor.mat', {'in_tensor':in_tensor})
-    sio.savemat('out_tensor.mat', {'out_tensor':out_tensor})
+    sio.savemat('in_tensor.mat', {'in_tensor': in_tensor})
+    sio.savemat('out_tensor.mat', {'out_tensor': out_tensor})
 
     return in_tensor, out_tensor
 
@@ -339,7 +333,7 @@ def automate_points_stress(number_of_elements, img_size):
 ###################################################################################
 
 def get_params(pentagon_name):
-    
+
     # open and read file
     file = open(pentagon_name, 'r')
     lines = list(file)
@@ -364,5 +358,34 @@ def get_params(pentagon_name):
                 input_params[pos, 4] = float(split_line[9])
                 input_params[pos, 5] = float(split_line[10])
                 pos += 1
-    return input_params     
-    
+
+    return input_params
+
+
+###################################################################################
+###################################################################################
+
+def automate_get_params(number_of_elements):
+
+    # create empty matrix
+    in_matrix = []
+
+    for item in range(number_of_elements):
+
+        # read the file from the folder
+        pentagon_name = './input_params/InputParams{}.txt'.format(item)
+
+        # get the pentagon parameters
+        pentagon_params = get_params(pentagon_name)
+
+        # add pentagon matrix to the stack
+        in_matrix.append(pentagon_params)
+
+    # save as .mat file
+    # sio.savemat('in_matirx.mat', {'in_matrix':in_matrix})
+
+    # save as npy
+    name = 'InputParams_matrix'
+    np.save(name, in_matrix)
+
+    return in_matrix
