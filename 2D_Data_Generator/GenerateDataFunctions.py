@@ -4,6 +4,8 @@ stress_to_image - func that create matrix with values from 0 to 1 based on vonMi
 automate_points_stress - create two 3D matrices with polygon and stress values
 get_params - create matrix with the input parameters based on InputParams.txt
 automate_get_params - create 3D matrix with all input parameters
+get_pressure - get the pressure from the InputParams.txt
+automate_get_pressure - create 3D matrix with all input pressures.
 
 """
 
@@ -389,3 +391,61 @@ def automate_get_params(number_of_elements):
     np.save(name, in_matrix)
 
     return in_matrix
+
+
+###################################################################################
+###################################################################################
+
+def get_pressure(pentagon_name):
+
+    # open and read file
+    file = open(pentagon_name, 'r')
+    lines = list(file)
+    file.close()
+
+    pressure = []
+
+    # get the data of the polygon from the InputParams.txt file
+    for i in range(len(lines)):
+        split_line = lines[i].split('\t')
+
+        if (split_line[0] == 'pressure'):
+            one_pressure = np.zeros((1, 3))
+            split_line = lines[i].split('\t')
+            one_pressure[0, 0] = float(split_line[1])
+            one_pressure[0, 1] = float(split_line[2])
+            one_pressure[0, 2] = float(split_line[3])
+            pressure = np.append(pressure, one_pressure)
+
+    pressure = np.reshape(pressure, (1, len(pressure)))
+
+    return pressure
+
+
+###################################################################################
+###################################################################################
+
+def automate_get_pressure(number_of_elements):
+
+    # create empty matrix
+    press_matrix = []
+
+    for item in range(number_of_elements):
+
+        # read the file from the folder
+        pentagon_name = './input_params/InputParams{}.txt'.format(item)
+
+        # get the pentagon parameters
+        pentagon_press = get_pressure(pentagon_name)
+
+        # add pentagon matrix to the stack
+        press_matrix.append(pentagon_press)
+
+    # save as .mat file
+    # sio.savemat('in_matirx.mat', {'in_matrix':in_matrix})
+
+    # save as npy
+    name = 'InputPressure_matrix'
+    np.save(name, press_matrix)
+
+    return press_matrix
