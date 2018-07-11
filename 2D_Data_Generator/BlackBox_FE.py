@@ -13,8 +13,8 @@ import numpy as np
 
 if not os.path.exists('./input_params'):
     os.mkdir('./input_params')
-    
-        
+
+
 def BlackBox_FE(file_name, index_n):
 
     # ================================== CREATE FOLDERS ===========================================
@@ -22,16 +22,13 @@ def BlackBox_FE(file_name, index_n):
     # vonMises
     if not os.path.exists('./vonMises'):
         os.mkdir('./vonMises')
-    
-    
-    # ================================= READ INPUT_PARAMS =====================================
 
+    # ================================= READ INPUT_PARAMS =====================================
 
     file_name = './input_params/{}'.format(file_name)
     file = open(file_name, "r")
     lines = list(file)
     file.close()
-    
 
     # ================================= MODEL GENERATION ======================================
 
@@ -46,7 +43,7 @@ def BlackBox_FE(file_name, index_n):
     pressure = []
     elepress = []
     edgepress = []
-    
+
     if firstline[0] == "pressure":
         while (firstline[0] == "pressure"):
             kk = kj+2
@@ -62,12 +59,11 @@ def BlackBox_FE(file_name, index_n):
 
     else:
         kk += 1
-    
+
         coord = np.zeros(shape=(len(lines)-kk, 3))
         fixation = np.zeros(shape=(len(lines)-kk, 6))
         load = np.zeros(shape=(len(lines)-kk, 6))
-            
-    
+
     kj = 0
     for j in range(kk, len(lines)):
         indat = lines[j].split('\t')
@@ -112,9 +108,24 @@ def BlackBox_FE(file_name, index_n):
                 if fixation[j][i] == 1:
                     newproc.append('%s%s\n' % ('*apply_dof ', tag[i]))
             newproc.append('%s%s%s\n' % ('*add_apply_nodes ', (j+1), ' #'))
+    # newproc.extend(proc[6:])
+
+    kk = 0
+    for j in range(0, len(load)):
+        summ = np.sum(load[j])
+        if summ > 0:
+            kk = kk+1
+            newproc.append('*new_apply *apply_type point_load\n')
+            newproc.append('%s%s\n' % ('*apply_name Load', (kk)))
+            tag = ['x', 'y', 'z', 'rx', 'ry', 'rz']
+            for i in range(0, 5):
+                if load[j][i] != 0:
+                    newproc.append('%s%s%s%s%s%s\n' % ('*apply_dof ', tag[i], ' *apply_dof_value ',
+                                                       tag[i], ' ', load[j][i]))
+            newproc.append('%s%s%s\n' % ('*add_apply_nodes ', (j+1), ' #'))
     newproc.extend(proc[6:])
 
-        # ================================= SAVE BASELINE =========================================
+    # ================================= SAVE BASELINE =========================================
     file = open('baseline.proc', "w")
     file.writelines(newproc)
     file.close()
@@ -150,9 +161,9 @@ def BlackBox_FE(file_name, index_n):
 # ================================= READ VONMISES =========================================
     #first_row = ('X Y Z VonMises')
     file = open('./vonMises/VonMisesCentroid{}.txt'.format(index_n), 'w')
-    np.savetxt(file, SC)# ), header=first_row)
+    np.savetxt(file, SC)  # ), header=first_row)
     file.close()
-    
+
 
 # ================================= REMOVE FILES =========================================
     os.remove('baseline.proc')
