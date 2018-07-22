@@ -43,10 +43,10 @@ def load_data(Inputs, Labels, split, batch_size, device, img_size):
     num_channels = 1
     
     if type(Inputs) == torch.Tensor:
-        Inputs = Variable(Inputs)
+        pass
     else:
-        Inputs = Variable(torch.from_numpy(Inputs))
-    Labels = Variable(torch.from_numpy(Labels))
+        Inputs = torch.from_numpy(Inputs)
+    Labels = torch.from_numpy(Labels)
     
     train_dataset = int((Inputs.size(0))*split)
 
@@ -60,10 +60,10 @@ def load_data(Inputs, Labels, split, batch_size, device, img_size):
     test_inputs = Variable(Test_Inputs.float()).to(device)
     test_labels = Variable(Test_Labels.float()).to(device)
     
-    train_inputs = train_inputs.view(int(Train_Inputs.size(0)/batch_size), batch_size, num_channels, Inputs.size(-2), Inputs.size(-1))
-    train_labels = train_labels.view(int(Train_Labels.size(0)/batch_size), batch_size, num_channels, Labels.size(-2), Labels.size(-1))
-    test_inputs = test_inputs.view(int(Test_Inputs.size(0)/batch_size), batch_size, num_channels, Inputs.size(-2), Inputs.size(-1))
-    test_labels = test_labels.view(int(Test_Labels.size(0)/batch_size), batch_size, num_channels, Labels.size(-2), Labels.size(-1))
+    train_inputs = train_inputs.view(int(Train_Inputs.size(0)/batch_size), batch_size, num_channels, Inputs.size(3), Inputs.size(4))
+    train_labels = train_labels.view(int(Train_Labels.size(0)/batch_size), batch_size, num_channels, Labels.size(3), Labels.size(4))
+    test_inputs = test_inputs.view(int(Test_Inputs.size(0)/batch_size), batch_size, num_channels, Inputs.size(3), Inputs.size(4))
+    test_labels = test_labels.view(int(Test_Labels.size(0)/batch_size), batch_size, num_channels, Labels.size(3), Labels.size(4))
     
     
     return train_inputs, train_labels, test_inputs, test_labels
