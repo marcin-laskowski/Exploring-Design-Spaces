@@ -1,4 +1,5 @@
 """
+load_data - 
 train_loss - function which calculates train loss
 test_loss - function which calculates test loss
 calculate_time - function which convert time of running program to minutes and seconds
@@ -39,7 +40,12 @@ warnings.filterwarnings("ignore")
 # ============================= PREPARE DATA ==================================
 def load_data(Inputs, Labels, split, batch_size, device, img_size):
     
-    Inputs = Variable(torch.from_numpy(Inputs))
+    num_channels = 1
+    
+    if type(Inputs) == torch.Tensor:
+        Inputs = Variable(Inputs)
+    else:
+        Inputs = Variable(torch.from_numpy(Inputs))
     Labels = Variable(torch.from_numpy(Labels))
     
     train_dataset = int((Inputs.size(0))*split)
@@ -54,10 +60,11 @@ def load_data(Inputs, Labels, split, batch_size, device, img_size):
     test_inputs = Variable(Test_Inputs.float()).to(device)
     test_labels = Variable(Test_Labels.float()).to(device)
     
-    train_inputs = train_inputs.view(int(Train_Inputs.size(0)/batch_size), batch_size, 1, img_size, img_size)
-    train_labels = train_labels.view(int(Train_Labels.size(0)/batch_size), batch_size, 1, img_size, img_size)
-    test_inputs = test_inputs.view(int(Test_Inputs.size(0)/batch_size), batch_size, 1, img_size, img_size)
-    test_labels = test_labels.view(int(Test_Labels.size(0)/batch_size), batch_size, 1, img_size, img_size)
+    train_inputs = train_inputs.view(int(Train_Inputs.size(0)/batch_size), batch_size, num_channels, Inputs.size(-2), Inputs.size(-1))
+    train_labels = train_labels.view(int(Train_Labels.size(0)/batch_size), batch_size, num_channels, Labels.size(-2), Labels.size(-1))
+    test_inputs = test_inputs.view(int(Test_Inputs.size(0)/batch_size), batch_size, num_channels, Inputs.size(-2), Inputs.size(-1))
+    test_labels = test_labels.view(int(Test_Labels.size(0)/batch_size), batch_size, num_channels, Labels.size(-2), Labels.size(-1))
+    
     
     return train_inputs, train_labels, test_inputs, test_labels
 
@@ -65,75 +72,56 @@ def load_data(Inputs, Labels, split, batch_size, device, img_size):
 
     
 # ============================= TRAIN LOSS ====================================
-def train_loss(model, train_input, train_label, mini_batch_size, img_size, criterion, device):
+def train_loss(model, train_inputs, train_labels, mini_batch_size, criterion, device):
     
-#    batch_size = 1
     num_channels = 1
     
     # prepare to size the size of the tensor
-    train_input = train_input.view(train_input.size(0), mini_batch_size, num_channels, img_size, img_size)
-    train_input = Variable(train_input.float()).to(device)
-    train_label = train_label.view(train_label.size(0), mini_batch_size, num_channels, img_size, img_size)
-    train_label = Variable(train_label.float()).to(device)
-    
+    train_inputs = train_inputs.view(train_inputs.size(0) * mini_batch_size, num_channels, train_inputs.size(-2), train_inputs.size(-1))
+    train_labels = train_labels.view(train_labels.size(0) * mini_batch_size, num_channels, train_labels.size(-2), train_labels.size(-1))
     
     # obtain prediction
-    for i in range(mini_batch_size):
-        temp_train_input = train_input[:,i,:,:,:]
-        temp_train_output = torch.zeros((int(train_label.size(0)/mini_batch_size), num_channels, img_size, img_size))
-        temp_train_output = model(temp_train_input)
-        temp_train_output = temp_train_output.view(temp_train_output.size(0), 1, num_channels, img_size, img_size)
-        if i == 0:
-            train_output = temp_train_output
-        else:
-            train_output = torch.cat((train_output, temp_train_output), 1)
+    train_outputs = model(train_inputs)
         
-    
     # validate the size of the output
-    train_output = train_output.view(train_label.size(0), mini_batch_size, num_channels, img_size, img_size)
+    train_outputs = train_outputs.view(train_labels.size(0), num_channels, train_labels.size(-2), train_labels.size(-1))
     
     # calculate test_loss
-    train_loss = criterion(train_output, train_label).cpu().data.numpy()
+    train_loss = criterion(train_outputs, train_labels).cpu().data.numpy()
     train_loss = np.round(float(train_loss), 4)
-#    train_loss = sqrt(train_loss.data[0])  # value in %
     
-    return train_loss, train_label, train_output
+    # change to view the same as input files
+    train_outputs = train_outputs.view(int(train_labels.size(0)/mini_batch_size), mini_batch_size, num_channels, train_labels.size(-2), train_labels.size(-1))
+
+    
+    return train_loss, train_labels, train_outputs
 
 
 
 # ============================ TEST LOSS ======================================
-def test_loss(model, test_input, test_label, mini_batch_size, img_size, criterion, device):
+def test_loss(model, test_inputs, test_labels, mini_batch_size, criterion, device):
     
-#    batch_size = 1
     num_channels = 1
     
     # prepare to size the size of the tensor
-    test_input = test_input.view(test_input.size(0), mini_batch_size, num_channels, img_size, img_size)
-    test_input = Variable(test_input.float()).to(device)
-    test_label = test_label.view(test_label.size(0), mini_batch_size, num_channels, img_size, img_size)
-    test_label = Variable(test_label.float()).to(device)
-    
-    
+    test_inputs = test_inputs.view(test_inputs.size(0) * mini_batch_size, num_channels, test_inputs.size(-2), test_inputs.size(-1))
+    test_labels = test_labels.view(test_labels.size(0) * mini_batch_size, num_channels, test_labels.size(-2), test_labels.size(-1))
+
     # obtain prediction
-    for i in range(mini_batch_size):
-        temp_test_input = test_input[:,i,:,:,:]
-        temp_test_output = torch.zeros((int(test_label.size(0)/mini_batch_size), num_channels, img_size, img_size))
-        temp_test_output = model(temp_test_input)
-        temp_test_output = temp_test_output.view(temp_test_output.size(0), 1, num_channels, img_size, img_size)
-        if i == 0:
-            test_output = temp_test_output
-        else:
-            test_output = torch.cat((test_output, temp_test_output), 1)
+    test_outputs = model(test_inputs)
     
     # validate the size of the output
-    test_output = test_output.view(test_label.size(0), mini_batch_size, num_channels, img_size, img_size)
+    test_outputs = test_outputs.view(test_labels.size(0), num_channels, test_labels.size(-2), test_labels.size(-1))
     
     # calculate test_loss
-    test_loss = criterion(test_output, test_label).cpu().data.numpy()
+    test_loss = criterion(test_outputs, test_labels).cpu().data.numpy()
     test_loss = np.round(float(test_loss), 4)
-#    test_loss = sqrt(test_loss.data[0])  # value in %
     
-    return test_loss, test_label, test_output
+    # change to view the same as input files
+    test_outputs = test_outputs.view(int(test_labels.size(0)/mini_batch_size), mini_batch_size, num_channels, test_labels.size(-2), test_labels.size(-1))
+
+    
+    return test_loss, test_labels, test_outputs
 
 
 # ============================= CALCULATE MIN / SEC ===========================
@@ -175,22 +163,19 @@ def epoch_progress(epoch, num_epoch, mini_batch_size, model, train_input, train_
                    test_output, criterion, start_time, end_time, img_size, device):
     
     # obtain train_loss
-    train_loss_value, train_label, train_output= train_loss(model, train_input, train_output, mini_batch_size, img_size, criterion, device)
+    train_loss_value, train_label, train_output= train_loss(model, train_input, train_output, mini_batch_size, criterion, device)
     
     # obtain test_loss
-    test_loss_value, test_label, test_output = test_loss(model, test_input, test_output, mini_batch_size, img_size, criterion, device)
+    test_loss_value, test_label, test_output = test_loss(model, test_input, test_output, mini_batch_size, criterion, device)
     
     # calculate time
     epoch_time_min, epoch_time_sec = calculate_time(start_time, end_time)
     
     # store data of the epoch
-    store_data = np.zeros((1, 5))
+    store_data = np.zeros((1, 3))
     store_data[0, 0] = epoch
     store_data[0, 1] = train_loss_value
     store_data[0, 2] = test_loss_value
-    store_data[0, 3] = epoch_time_min
-    store_data[0, 4] = epoch_time_sec
-#    store_data[0, 5] = img_diff
 
     
     # print progress
@@ -205,12 +190,7 @@ def epoch_progress(epoch, num_epoch, mini_batch_size, model, train_input, train_
 # =========================== PLOT ACCURACY ===================================
 def result_plot(stage, all_store_data, criterion, report=False, saveJPG=False,
                 saveSVG=False, savePDF=False):
-    
-#    all_store_data = np.zeros((30, 3))
-#    all_store_data[:,0] = range(30)
-#    all_store_data[:,1] = train_test_loss[:,0]
-#    all_store_data[:,2] = train_test_loss[:,1]
-    
+
     
     # font definition
     title_font = {'fontname':'Arial', 'size':'16', 'color':'black', 'weight':'normal',
@@ -242,7 +222,6 @@ def result_plot(stage, all_store_data, criterion, report=False, saveJPG=False,
     # subplot 2
     ax[1].plot(all_store_data[:,0], all_store_data[:,1], color='#2A6F92', label='test loss')
     ax[1].set_xlabel('epochs', **axis_font)
-#    ax[1].set_ylabel('loss', **axis_font)
     ax[1].set_title('test loss', **title_font)
     
     
@@ -303,7 +282,6 @@ def save_as_mat(name, input_array, stage, num_epoch):
         os.mkdir('./RESULTS')
     
     # save .mat file
-#    sio.savemat('./RESULTS/' + name + '_' + short_title + '.mat', {input_array:input_array})
     savemat('./RESULTS/' + name + '_' + short_title + '.mat', input_array)
 
 
@@ -313,7 +291,6 @@ def save_as_mat(name, input_array, stage, num_epoch):
 def save_net_information(stage, name, model, model_specification):    
     
     # file name
-#    file_name = 'MODEL_' + stage + '_' + name
     time_data = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
     
     # add title
@@ -345,9 +322,6 @@ def save_net_information(stage, name, model, model_specification):
     for key, value in model_specification.items():
         spec_key = key
         spec_value = value
-    
-    temp_model.append('\n')
-    for j in range(len(model_specification)):
         temp_model.append(str(spec_key) + ': ' + str(spec_value))
         temp_model.append('\n')
     temp_model.append('\n')
@@ -386,8 +360,8 @@ def get_value(input):
 def plot_output(stage, epochs, test_labels, test_outputs, img_size, report=False, saveJPG=False,
                 saveSVG=False, savePDF=False):
     
-    output = test_labels.view(test_labels.size(0)*test_labels.size(1), test_labels.size(3), test_labels.size(4))
-    pred_output = test_outputs.view(test_outputs.size(0)*test_outputs.size(1), test_outputs.size(3), test_outputs.size(4))
+    output = test_labels.view(test_labels.size(0)*test_labels.size(1), test_labels.size(-2), test_labels.size(-1))
+    pred_output = test_outputs.view(test_outputs.size(0)*test_outputs.size(1), test_outputs.size(-2), test_outputs.size(-1))
     
     data_numbers = [1, 2, 3, 4, 5]
     

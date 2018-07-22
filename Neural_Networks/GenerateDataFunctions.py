@@ -376,7 +376,8 @@ def automate_get_params(number_of_elements):
     for item in range(number_of_elements):
 
         # read the file from the folder
-        pentagon_name = './input_params/InputParams{}.txt'.format(item)
+#        pentagon_name = './input_params/InputParams{}.txt'.format(item)
+        pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
 
         # get the pentagon parameters
         pentagon_params = get_params(pentagon_name)
@@ -434,7 +435,8 @@ def automate_get_pressure(number_of_elements):
     for item in range(number_of_elements):
 
         # read the file from the folder
-        pentagon_name = './input_params/InputParams{}.txt'.format(item)
+#        pentagon_name = './input_params/InputParams{}.txt'.format(item)
+        pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
 
         # get the pentagon parameters
         pentagon_press = get_pressure(pentagon_name)
