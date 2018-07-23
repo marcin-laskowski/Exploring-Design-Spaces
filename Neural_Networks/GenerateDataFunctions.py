@@ -342,6 +342,7 @@ def get_params(pentagon_name):
     lines = list(file)
     file.close()
 
+    img_size = 64
     polygon = 5
     number_of_parameters = 6  # X, Y, F_X, F_Y, FX, FY
     input_params = np.zeros((polygon, number_of_parameters))
@@ -354,8 +355,10 @@ def get_params(pentagon_name):
             pos = 0
             for m in range(k, k+polygon):
                 split_line = lines[m].split('\t')
-                input_params[pos, 0] = float(split_line[0])
-                input_params[pos, 1] = float(split_line[1])
+#                input_params[pos, 0] = float(split_line[0])
+                input_params[pos, 0] = float((np.multiply(float(split_line[0]), img_size/2)) + (img_size/2))
+#                input_params[pos, 1] = float(split_line[1])
+                input_params[pos, 1] = float((np.multiply(float(split_line[1]), img_size/2)) + (img_size/2))
                 input_params[pos, 2] = float(split_line[3])
                 input_params[pos, 3] = float(split_line[4])
                 input_params[pos, 4] = float(split_line[9])
@@ -363,6 +366,10 @@ def get_params(pentagon_name):
                 pos += 1
 
     return input_params
+
+
+
+
 
 
 ###################################################################################
@@ -393,6 +400,74 @@ def automate_get_params(number_of_elements):
     np.save(name, in_matrix)
 
     return in_matrix
+
+
+###################################################################################
+###################################################################################
+
+def get_fix_and_force(pentagon_name):
+
+    # open and read file
+    file = open(pentagon_name, 'r')
+    lines = list(file)
+    file.close()
+
+    polygon = 5
+    number_of_parameters = 4  # X, Y, F_X, F_Y, FX, FY
+    input_params = np.zeros((polygon, number_of_parameters))
+
+    # get the data of the polygon from the InputParams.txt file
+    for i in range(len(lines)):
+        split_line = lines[i].split('\t')
+        if (split_line[0] == 'X'):
+            k = i + 1
+            pos = 0
+            for m in range(k, k+polygon):
+                split_line = lines[m].split('\t')
+                input_params[pos, 0] = float(split_line[3])
+                input_params[pos, 1] = float(split_line[4])
+                input_params[pos, 2] = float(split_line[9])
+                input_params[pos, 3] = float(split_line[10])
+                pos += 1
+
+    return input_params
+
+
+
+
+
+
+###################################################################################
+###################################################################################
+
+def automate_get_fix_and_force(number_of_elements):
+
+    # create empty matrix
+    in_matrix = []
+
+    for item in range(number_of_elements):
+
+        # read the file from the folder
+#        pentagon_name = './input_params/InputParams{}.txt'.format(item)
+#        pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
+        pentagon_name = './DATA/01_data_noPress/input_params/InputParams{}.txt'.format(item)
+
+
+        # get the pentagon parameters
+        pentagon_params = get_params(pentagon_name)
+
+        # add pentagon matrix to the stack
+        in_matrix.append(pentagon_params)
+
+    # save as .mat file
+    # sio.savemat('in_matirx.mat', {'in_matrix':in_matrix})
+
+    # save as npy
+    name = 'Input_fix_and_force_matrix'
+    np.save(name, in_matrix)
+
+    return in_matrix
+
 
 
 ###################################################################################

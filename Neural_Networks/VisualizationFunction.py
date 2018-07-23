@@ -70,6 +70,24 @@ def load_data(Inputs, Labels, split, batch_size, device, img_size):
 
 
 
+# ==================== PREPARE DATA - ONLY PARAMETERS =========================
+def load_params(Params, split, batch_size, device, img_size):
+
+    num_channels = 1
+    
+    train_dataset = int((Params.size(0))*split)
+
+    Train_Params = Params[ : train_dataset]
+    Test_Params = Params[train_dataset : ]
+    
+    train_params = Variable(Train_Params.float()).to(device)
+    test_params = Variable(Test_Params.float()).to(device)
+    
+    train_params = train_params.view(int(Train_Params.size(0)/batch_size), batch_size, num_channels, Params.size(3), Params.size(4))
+    test_params = test_params.view(int(Test_Params.size(0)/batch_size), batch_size, num_channels, Params.size(3), Params.size(4))
+    
+    
+    return train_params, test_params
     
 # ============================= TRAIN LOSS ====================================
 def train_loss(model, train_inputs, train_labels, mini_batch_size, criterion, device):

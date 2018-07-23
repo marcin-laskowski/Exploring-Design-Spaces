@@ -32,7 +32,7 @@ for iteration in range(1,2):
         Labels = np.load('./DATA/02_data_diffShape/Labels_DataSet.npy')
 
 
-    for iteration_2 in range(3, 4):
+    for iteration_2 in range(5, 6):
 
 
         start_time = 0
@@ -48,7 +48,7 @@ for iteration in range(1,2):
 
         device_type = 'cpu'
         learning_rate = 0.001
-        num_epoch = 150
+        num_epoch = 50
         mini_batch_size = 1000
         momentum = 0.9
         img_size = 64
@@ -134,6 +134,7 @@ for iteration in range(1,2):
                     x = self.decoder(x)
                     return x
 
+
         elif iteration_2 == 3:
             class Net(nn.Module):
                 def __init__(self):
@@ -193,6 +194,7 @@ for iteration in range(1,2):
                     x = self.decoder1(x)
                     x = self.decoder2(x.view(x.size(0), 16, 13, 13))
                     return x
+
 
         else:
             print("WRONG MODEL!")
