@@ -385,6 +385,7 @@ def automate_get_params(number_of_elements):
         # read the file from the folder
 #        pentagon_name = './input_params/InputParams{}.txt'.format(item)
         pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
+        pentagon_name = './DATA/01_data_noPress/input_params/InputParams{}.txt'.format(item)
 
         # get the pentagon parameters
         pentagon_params = get_params(pentagon_name)
@@ -510,8 +511,7 @@ def automate_get_pressure(number_of_elements):
     for item in range(number_of_elements):
 
         # read the file from the folder
-#        pentagon_name = './input_params/InputParams{}.txt'.format(item)
-        pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
+       pentagon_name = './input_params/InputParams{}.txt'.format(item)
 
         # get the pentagon parameters
         pentagon_press = get_pressure(pentagon_name)
@@ -531,20 +531,20 @@ def automate_get_pressure(number_of_elements):
 
 ###################################################################################
 ###################################################################################
-    
+
 def save_as_img(matrix, img_name, colour):
-    
+
     """
     matrix - matirx with the values of the image
     img_name - name of the file that we want to store
     colour - 1 or 255
     """
-    
+
     # create empty folder
     if not os.path.exists('./images'):
         os.mkdir('./images')
 
-    image_temp = np.multiply(matrix, colour)    
+    image_temp = np.multiply(matrix, colour)
     scipy.misc.imsave(('./images/' + img_name + '.png'), image_temp)
 
     image_inv = Image.open('./images/' + img_name + '.png')

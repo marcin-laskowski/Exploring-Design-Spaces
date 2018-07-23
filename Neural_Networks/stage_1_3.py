@@ -156,7 +156,7 @@ for iteration in range(1):
                         nn.Linear(500, 1200),
                         nn.ReLU(True),
                         nn.Dropout(),
-                        nn.Linear(1200, 16 * 10 * 1),
+                        nn.Linear(1200, 16 * 10 * 10),
                         nn.ReLU())
                     self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
                         nn.ConvTranspose2d(16, 10, 6, stride=2),
