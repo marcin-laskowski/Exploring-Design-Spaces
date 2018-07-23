@@ -25,7 +25,7 @@ from IPython import get_ipython
 # ========================= PARAMETERS ========================================
 Train = 1
 
-device_type = 'cpu'
+device_type = 'cuda'
 learning_rate = 0.001       # 0.001
 num_epoch = 50
 mini_batch_size = 200       # 100

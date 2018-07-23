@@ -511,7 +511,7 @@ def automate_get_pressure(number_of_elements):
     for item in range(number_of_elements):
 
         # read the file from the folder
-       pentagon_name = './input_params/InputParams{}.txt'.format(item)
+        pentagon_name = './input_params/InputParams{}.txt'.format(item)
 
         # get the pentagon parameters
         pentagon_press = get_pressure(pentagon_name)
