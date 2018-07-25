@@ -66,7 +66,7 @@ print('Data Prepared!')
 
 
 for iteration in range(2):
-    
+
     for iteration_2 in range(2):
 
         start_time = 0
@@ -195,7 +195,7 @@ for iteration in range(2):
 
         # calling the model
         net = Net().to(device)
-        
+
         if iteration == 0:
             criterion = nn.L1Loss().to(device)
         else:
@@ -214,10 +214,10 @@ for iteration in range(2):
 
         # ============================== TRAINING =====================================
         if Train == True:
-            
+
             print('Lets start Training!')
-            learning_rate = 0.001 
-            
+            learning_rate = 0.001
+
             # Learning process
             for epoch in range(num_epoch):
 
@@ -228,11 +228,11 @@ for iteration in range(2):
                 running_loss = 0.0
 
                 for i in range(0, train_inputs.size(0), mini_batch_size):
-                    
+
                     # -------------------- TRAIN DATA ---------------------------------
                     train_input = train_inputs[i:i+mini_batch_size, :, :, :]  # train_input.size --> (:, 1, 64, 64)
                     train_label = train_labels[i:i+mini_batch_size, :, :, :]  # train_labels.size --> (:, 1, 64, 64)
-                    
+
                     # forward path
                     train_out = net(train_input)
 
@@ -247,7 +247,7 @@ for iteration in range(2):
 
 
                 end_time = time.time()
-                
+
                 epoch_data, train_outputs, test_outputs = VF.epoch_progress(epoch, num_epoch, mini_batch_size, net, train_inputs, train_labels,
                                                                             test_inputs, test_labels, criterion, start_time,
                                                                             end_time, img_size, device)
@@ -304,7 +304,7 @@ for iteration in range(2):
         time.sleep(5)
         os.rename('RESULTS', 'RESULTS_' + stage )
         time.sleep(5)
-        
+
         os.remove('report_plot.png')
         os.remove('report_output.png')
 
