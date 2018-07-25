@@ -22,7 +22,7 @@ start_time = time.time()
 
 
 
-for iteration in range(1):
+for iteration in range(2):
 
     if iteration == 0:
         Inputs = np.load('./DATA/02_data_diffShape/Images_DataSet.npy')

@@ -11,7 +11,7 @@ import datetime
 from math import sqrt
 
 import GenerateDataFunctions as GDF
-import VisualizationFunction as VF
+import VisualizationFunction2 as VF
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -27,13 +27,13 @@ Train = 1
 
 device_type = 'cuda'
 learning_rate = 0.001       # 0.001
-num_epoch = 5
-mini_batch_size = 200       # 100
+num_epoch = 4000
+mini_batch_size = 50       # 100
 momentum = 0.9
 img_size = 64
 num_channels = 1
 
-split = 4/5               # 6/10, 5000
+split = 7/8               # 6/10, 5000
 
 
 device = torch.device(device_type)  # cpu or cuda
@@ -58,15 +58,16 @@ Inputs = input_data.view(input_data.size(0), 1, 1, 5, 6)
 #Labels = np.load('./DATA/01_data_noPress/Labels_DataSet.npy')
 Labels = np.load('./DATA/03_data_new/Labels_DataSet.npy')
 
-Inputs = Inputs[:5000]
-Labels = Labels[:5000]
+Inputs = Inputs[:8000]
+Labels = Labels[:8000]
 train_inputs, train_labels, test_inputs, test_labels = VF.load_data(Inputs, Labels, split, mini_batch_size, device, img_size)
 
+print('Data Prepared!')
 
 
-for iteration in range(1):
-
-    for iteration_2 in range(2, 3):
+for iteration in range(2):
+    
+    for iteration_2 in range(2):
 
         start_time = 0
         start_time = time.time()
@@ -85,10 +86,7 @@ for iteration in range(1):
                 def __init__(self):
                     super(Net, self).__init__()
                     self.converter= nn.Sequential(
-                        nn.Linear(5*6, 100),
-                        nn.ReLU(True),
-                        nn.Dropout(),
-                        nn.Linear(100, 500),
+                        nn.Linear(5*6, 500),
                         nn.ReLU(True),
                         nn.Dropout(),
                         nn.Linear(500, 1200),
@@ -96,6 +94,9 @@ for iteration in range(1):
                         nn.Dropout(),
                         nn.Linear(1200, 2000),
                         nn.ReLU(True),
+                        nn.Dropout(),
+                        nn.Linear(2000, 2000),
+                        nn.ReLU(),
                         nn.Dropout(),
                         nn.Linear(2000, 64*64),
                         nn.ReLU())
@@ -113,16 +114,16 @@ for iteration in range(1):
                 def __init__(self):
                     super(Net, self).__init__()
                     self.converter= nn.Sequential(
-                        nn.Linear(5*6, 100),
+                        nn.Linear(5*6, 500),
                         nn.ReLU(),
                         nn.Dropout(0.2),
-                        nn.Linear(100, 500),
+                        nn.Linear(500, 1000),
                         nn.ReLU(),
                         nn.Dropout(0.2),
-                        nn.Linear(500, 500),
+                        nn.Linear(1000, 1400),
                         nn.ReLU(),
                         nn.Dropout(0.2),
-                        nn.Linear(500, 1600),
+                        nn.Linear(1400, 1600),
                         nn.ReLU())
                     self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
                         nn.ConvTranspose2d(16, 10, 6, stride=2),
@@ -194,8 +195,12 @@ for iteration in range(1):
 
         # calling the model
         net = Net().to(device)
-
-        criterion = nn.MSELoss()
+        
+        if iteration == 0:
+            criterion = nn.L1Loss().to(device)
+        else:
+            criterion = nn.SmoothL1Loss().to(device)
+#        criterion = nn.BCELoss()
 #        criterion = nn.PoissonNLLLoss()
 #        optimizer = optim.Adam(params=net.parameters(), lr=learning_rate)
         optimizer = optim.SGD(params=net.parameters(), lr=learning_rate, momentum=momentum)
@@ -209,6 +214,10 @@ for iteration in range(1):
 
         # ============================== TRAINING =====================================
         if Train == True:
+            
+            print('Lets start Training!')
+            learning_rate = 0.001 
+            
             # Learning process
             for epoch in range(num_epoch):
 
@@ -218,32 +227,34 @@ for iteration in range(1):
 
                 running_loss = 0.0
 
-                for i in range(mini_batch_size):
-
+                for i in range(0, train_inputs.size(0), mini_batch_size):
+                    
                     # -------------------- TRAIN DATA ---------------------------------
-                    train_input = train_inputs[:, i, :, :, :]  # train_input.size --> (:, 1, 64, 64)
-                    train_label = train_labels[:, i, :, :, :]  # train_labels.size --> (:, 1, 64, 64)
-
+                    train_input = train_inputs[i:i+mini_batch_size, :, :, :]  # train_input.size --> (:, 1, 64, 64)
+                    train_label = train_labels[i:i+mini_batch_size, :, :, :]  # train_labels.size --> (:, 1, 64, 64)
+                    
                     # forward path
                     train_out = net(train_input)
 
                     loss = criterion(train_out, train_label)
                     loss.backward()
                     optimizer.step()
-                    running_loss += loss.data[0]
-                    loss_sum += loss.data[0]
+#                    running_loss += loss.data[0]
+#                    loss_sum += loss.data[0]
 
                     net.zero_grad()
 
 
 
                 end_time = time.time()
-
+                
                 epoch_data, train_outputs, test_outputs = VF.epoch_progress(epoch, num_epoch, mini_batch_size, net, train_inputs, train_labels,
                                                                             test_inputs, test_labels, criterion, start_time,
                                                                             end_time, img_size, device)
 
+
                 all_store_data[epoch, :] = epoch_data
+
 
             final_time = time.time()
 
@@ -252,7 +263,7 @@ for iteration in range(1):
             VF.plot_output('out_' + stage, num_epoch, test_labels, test_outputs, img_size, True, saveSVG=True)
 
             # save model and state_dict
-            VF.save_model(net, 'Autoencoder_' + str(iteration_2))
+            VF.save_model(net, stage + '_' + str(iteration_2))
 
             # obtain image difference
             img_diff = VF.image_difference(test_labels, test_outputs)
@@ -261,8 +272,8 @@ for iteration in range(1):
 
             # save all parameters
             model_specification = VF.net_specification(stage, train_input.size(0),
-                                                       str(train_inputs.size(3)) +' x ' + str(train_inputs.size(4)),
-                                                       str(train_labels.size(3)) +' x ' + str(train_labels.size(4)),
+                                                       str(train_inputs.size(2)) +' x ' + str(train_inputs.size(3)),
+                                                       str(train_labels.size(2)) +' x ' + str(train_labels.size(3)),
                                                        num_epoch, mini_batch_size, learning_rate, momentum, criterion,
                                                        optimizer, str(train_inputs.size(0)*train_inputs.size(1)) + ' / ' + str(test_inputs.size(0)*test_inputs.size(1)),
                                                        device_type, np.min(all_store_data[:,1]), np.max(all_store_data[:,1]),
@@ -274,7 +285,9 @@ for iteration in range(1):
 
             time.sleep(5)
             # create report
+
             VF.create_report(net, stage, model_specification)
+
 
 
         # ============================== TESTING ======================================
@@ -291,6 +304,10 @@ for iteration in range(1):
         time.sleep(5)
         os.rename('RESULTS', 'RESULTS_' + stage )
         time.sleep(5)
+        
+        os.remove('report_plot.png')
+        os.remove('report_output.png')
+
 
         # clear Variable explorer in Spyder
         # def __reset__(): get_ipython().magic('reset -sf')

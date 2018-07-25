@@ -355,10 +355,10 @@ def get_params(pentagon_name):
             pos = 0
             for m in range(k, k+polygon):
                 split_line = lines[m].split('\t')
-#                input_params[pos, 0] = float(split_line[0])
-                input_params[pos, 0] = float((np.multiply(float(split_line[0]), img_size/2)) + (img_size/2))
-#                input_params[pos, 1] = float(split_line[1])
-                input_params[pos, 1] = float((np.multiply(float(split_line[1]), img_size/2)) + (img_size/2))
+                input_params[pos, 0] = float(split_line[0])
+#                input_params[pos, 0] = float((np.multiply(float(split_line[0]), img_size/2)) + (img_size/2))
+                input_params[pos, 1] = float(split_line[1])
+#                input_params[pos, 1] = float((np.multiply(float(split_line[1]), img_size/2)) + (img_size/2))
                 input_params[pos, 2] = float(split_line[3])
                 input_params[pos, 3] = float(split_line[4])
                 input_params[pos, 4] = float(split_line[9])
@@ -384,8 +384,9 @@ def automate_get_params(number_of_elements):
 
         # read the file from the folder
 #        pentagon_name = './input_params/InputParams{}.txt'.format(item)
-        pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
-        pentagon_name = './DATA/01_data_noPress/input_params/InputParams{}.txt'.format(item)
+#        pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
+#        pentagon_name = './DATA/01_data_noPress/input_params/InputParams{}.txt'.format(item)
+        pentagon_name = './DATA/03_data_new/input_params/InputParams{}.txt'.format(item)
 
         # get the pentagon parameters
         pentagon_params = get_params(pentagon_name)
