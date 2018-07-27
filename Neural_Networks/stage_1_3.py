@@ -33,7 +33,7 @@ momentum = 0.9
 img_size = 64
 num_channels = 1
 
-split = 4/5               # 6/10, 5000
+split = 7/8                 # 6/10, 5000
 
 
 device = torch.device(device_type)  # cpu or cuda
@@ -58,8 +58,8 @@ Inputs = input_data.view(input_data.size(0), 1, 1, 5, 6)
 #Labels = np.load('./DATA/01_data_noPress/Labels_DataSet.npy')
 Labels = np.load('./DATA/03_data_new/Labels_DataSet.npy')
 
-Inputs = Inputs[:5000]
-Labels = Labels[:5000]
+Inputs = Inputs[:8000]
+Labels = Labels[:8000]
 train_inputs, train_labels, test_inputs, test_labels = VF.load_data(Inputs, Labels, split, mini_batch_size, device, img_size)
 
 
@@ -252,7 +252,7 @@ for iteration in range(1):
             VF.plot_output('out_' + stage, num_epoch, test_labels, test_outputs, img_size, True, saveSVG=True)
 
             # save model and state_dict
-            VF.save_model(net, 'Autoencoder_' + str(iteration_2))
+            VF.save_model(net, stage)
 
             # obtain image difference
             img_diff = VF.image_difference(test_labels, test_outputs)

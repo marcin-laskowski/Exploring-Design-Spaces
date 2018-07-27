@@ -60,10 +60,10 @@ def load_data(Inputs, Labels, split, batch_size, device, img_size):
     test_inputs = Variable(Test_Inputs.float()).to(device)
     test_labels = Variable(Test_Labels.float()).to(device)
     
-    train_inputs = train_inputs.view(int(Train_Inputs.size(0)/batch_size), batch_size, num_channels, Inputs.size(3), Inputs.size(4))
-    train_labels = train_labels.view(int(Train_Labels.size(0)/batch_size), batch_size, num_channels, Labels.size(3), Labels.size(4))
-    test_inputs = test_inputs.view(int(Test_Inputs.size(0)/batch_size), batch_size, num_channels, Inputs.size(3), Inputs.size(4))
-    test_labels = test_labels.view(int(Test_Labels.size(0)/batch_size), batch_size, num_channels, Labels.size(3), Labels.size(4))
+#    train_inputs = train_inputs.view(int(Train_Inputs.size(0)/batch_size), batch_size, num_channels, Inputs.size(3), Inputs.size(4))
+#    train_labels = train_labels.view(int(Train_Labels.size(0)/batch_size), batch_size, num_channels, Labels.size(3), Labels.size(4))
+#    test_inputs = test_inputs.view(int(Test_Inputs.size(0)/batch_size), batch_size, num_channels, Inputs.size(3), Inputs.size(4))
+#    test_labels = test_labels.view(int(Test_Labels.size(0)/batch_size), batch_size, num_channels, Labels.size(3), Labels.size(4))
     
     
     return train_inputs, train_labels, test_inputs, test_labels
@@ -83,8 +83,8 @@ def load_params(Params, split, batch_size, device, img_size):
     train_params = Variable(Train_Params.float()).to(device)
     test_params = Variable(Test_Params.float()).to(device)
     
-    train_params = train_params.view(int(Train_Params.size(0)/batch_size), batch_size, num_channels, Params.size(3), Params.size(4))
-    test_params = test_params.view(int(Test_Params.size(0)/batch_size), batch_size, num_channels, Params.size(3), Params.size(4))
+#    train_params = train_params.view(int(Train_Params.size(0)/batch_size), batch_size, num_channels, Params.size(3), Params.size(4))
+#    test_params = test_params.view(int(Test_Params.size(0)/batch_size), batch_size, num_channels, Params.size(3), Params.size(4))
     
     
     return train_params, test_params
@@ -95,8 +95,8 @@ def train_loss(model, train_inputs, train_labels, mini_batch_size, criterion, de
     num_channels = 1
     
     # prepare to size the size of the tensor
-    train_inputs = train_inputs.view(train_inputs.size(0) * mini_batch_size, num_channels, train_inputs.size(-2), train_inputs.size(-1))
-    train_labels = train_labels.view(train_labels.size(0) * mini_batch_size, num_channels, train_labels.size(-2), train_labels.size(-1))
+#    train_inputs = train_inputs.view(train_inputs.size(0) * mini_batch_size, num_channels, train_inputs.size(-2), train_inputs.size(-1))
+#    train_labels = train_labels.view(train_labels.size(0) * mini_batch_size, num_channels, train_labels.size(-2), train_labels.size(-1))
     
     # obtain prediction
     train_outputs = model(train_inputs)
@@ -109,7 +109,7 @@ def train_loss(model, train_inputs, train_labels, mini_batch_size, criterion, de
     train_loss = np.round(float(train_loss), 4)
     
     # change to view the same as input files
-    train_outputs = train_outputs.view(int(train_labels.size(0)/mini_batch_size), mini_batch_size, num_channels, train_labels.size(-2), train_labels.size(-1))
+#    train_outputs = train_outputs.view(int(train_labels.size(0)/mini_batch_size), mini_batch_size, num_channels, train_labels.size(-2), train_labels.size(-1))
 
     
     return train_loss, train_labels, train_outputs
@@ -122,8 +122,8 @@ def test_loss(model, test_inputs, test_labels, mini_batch_size, criterion, devic
     num_channels = 1
     
     # prepare to size the size of the tensor
-    test_inputs = test_inputs.view(test_inputs.size(0) * mini_batch_size, num_channels, test_inputs.size(-2), test_inputs.size(-1))
-    test_labels = test_labels.view(test_labels.size(0) * mini_batch_size, num_channels, test_labels.size(-2), test_labels.size(-1))
+#    test_inputs = test_inputs.view(test_inputs.size(0) * mini_batch_size, num_channels, test_inputs.size(-2), test_inputs.size(-1))
+#    test_labels = test_labels.view(test_labels.size(0) * mini_batch_size, num_channels, test_labels.size(-2), test_labels.size(-1))
 
     # obtain prediction
     test_outputs = model(test_inputs)
@@ -136,7 +136,7 @@ def test_loss(model, test_inputs, test_labels, mini_batch_size, criterion, devic
     test_loss = np.round(float(test_loss), 4)
     
     # change to view the same as input files
-    test_outputs = test_outputs.view(int(test_labels.size(0)/mini_batch_size), mini_batch_size, num_channels, test_labels.size(-2), test_labels.size(-1))
+#    test_outputs = test_outputs.view(int(test_labels.size(0)/mini_batch_size), mini_batch_size, num_channels, test_labels.size(-2), test_labels.size(-1))
 
     
     return test_loss, test_labels, test_outputs

@@ -32,7 +32,7 @@ for iteration in range(2):
         Labels = np.load('./DATA/02_data_diffShape/Labels_DataSet.npy')
 
 
-    for iteration_2 in range(5,6):
+    for iteration_2 in range(2,3):
 
 
         start_time = 0
@@ -48,21 +48,21 @@ for iteration in range(2):
 
         device_type = 'cuda'
         learning_rate = 0.001
-        num_epoch = 200
+        num_epoch = 10
         mini_batch_size = 100
         momentum = 0.9
         img_size = 64
         num_channels = 1
 
-        split = 7/8
+        split = 7/10
         
         validation_model = '.pt'
 
         # ==================== INPUT DATA =============================================
         device = torch.device(device_type)  # cpu or cuda
 
-        Inputs = Inputs[:8000]
-        Labels = Labels[:8000]
+        Inputs = Inputs[:10000]
+        Labels = Labels[:10000]
         train_inputs, train_labels, test_inputs, test_labels = VF.load_data(Inputs, Labels, split, mini_batch_size, device, img_size)
 
 
@@ -74,10 +74,12 @@ for iteration in range(2):
             class Net(nn.Module):
                 def __init__(self):
                     super().__init__()
-                    self.h1 = nn.Linear(64*64, 300)
-                    self.h2 = nn.Linear(300, 30)
-                    self.h3 = nn.Linear(30, 300)
-                    self.h4 = nn.Linear(300, 64*64)
+                    self.h1 = nn.Linear(64*64, 1000)
+                    self.h2 = nn.Linear(1000, 300)
+                    self.h3 = nn.Linear(300, 100)
+                    self.h4 = nn.Linear(100, 300)
+                    self.h5 = nn.Linear(300, 1000)
+                    self.h6 = nn.Linear(1000, 64*64)
 
                 def forward(self, x):
                     x = x.view(x.size(0), 64*64)
@@ -85,6 +87,9 @@ for iteration in range(2):
                     x = F.relu(self.h2(x))
                     x = F.relu(self.h3(x))
                     x = F.relu(self.h4(x))
+                    x = F.relu(self.h5(x))
+                    x = F.relu(self.h6(x))
+                    x = x.view(x.size(0),1,64,64)
                     return x
 
 
@@ -93,26 +98,64 @@ for iteration in range(2):
                 def __init__(self):
                     super(Net, self).__init__()
                     self.encoder = nn.Sequential(
-                        nn.Linear(64*64, 200),
+                        nn.Linear(64*64, 1000),
                         nn.ReLU(),
-                        nn.Dropout(),
+                        nn.Dropout(0.3),
+                        nn.Linear(1000, 200),
+                        nn.ReLU(),
+                        nn.Dropout(0.2),
                         nn.Linear(200, 40),
                         nn.ReLU())
                     self.decoder = nn.Sequential(
-                        nn.Linear(40,200),
+                        nn.Linear(40, 200),
+                        nn.ReLU(),
+                        nn.Dropout(0.3),
+                        nn.Linear(200, 1000),
                         nn.ReLU(),
                         nn.Dropout(),
-                        nn.Linear(200, 64*64),
-                        nn.RReLU(0, 1))
+                        nn.Linear(1000, 64*64),
+                        nn.ReLU())
 
                 def forward(self, x):
                     x = x.view(x.size(0), 64*64)
                     x = self.encoder(x)
                     x = self.decoder(x)
+                    x = x.view(x.size(0),1,64,64)
                     return x
 
 
         elif iteration_2 == 2:
+            class Net(nn.Module):
+                def __init__(self):
+                    super(Net, self).__init__()
+                    self.encoder = nn.Sequential(
+                        nn.Conv2d(1,5,3,1,1),
+                        nn.MaxPool2d(2,2),
+                        nn.ReLU(),
+                        nn.Conv2d(5,6,3,1,1),
+                        nn.MaxPool2d(2,2),
+                        nn.ReLU(),
+                        nn.Conv2d(6,8,3,1,1),
+                        nn.MaxPool2d(4,4),
+                        nn.ReLU()) 
+                    self.decoder = nn.Sequential(
+                        nn.ConvTranspose2d(10,8,2,2,0,0),
+                        nn.BatchNorm2d(8),
+                        nn.ReLU(True),
+                        nn.ConvTranspose2d(8,6,2,2,0,0),
+                        nn.BatchNorm2d(6),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(6,1,4,4,0,0),
+                        nn.ReLU())
+
+                def forward(self, x):
+                    x = self.encoder(x)
+                    x = self.decoder(x.view(x.size(0), 10, 4, 4))
+                    x = x.view(x.size(0),1,64,64)
+                    return x
+        
+        
+        elif iteration_2 == 3:
             class Net(nn.Module):
                 def __init__(self):
                     super(Net, self).__init__()
@@ -132,33 +175,6 @@ for iteration in range(2):
                 def forward(self, x):
                     x = self.encoder(x)
                     x = self.decoder(x)
-                    return x
-
-
-        elif iteration_2 == 3:
-            class Net(nn.Module):
-                def __init__(self):
-                    super(Net, self).__init__()
-                    self.encoder = nn.Sequential(
-                        nn.Conv2d(1, 6, kernel_size=6, stride=2, padding=0),
-                        nn.ReLU(True),
-                        nn.MaxPool2d(kernel_size=3, stride=1),
-                        nn.Conv2d(6, 16, kernel_size=6, stride=2, padding=0),
-                        nn.ReLU(True),
-                        nn.MaxPool2d(kernel_size=3, stride=1))  # output: 1, 16, 10, 10
-                    self.decoder = nn.Sequential(
-                        nn.ConvTranspose2d(16, 10, 6, stride=2),
-                        nn.ReLU(True),
-                        nn.ConvTranspose2d(10, 6, 6, stride=2),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(6, 3, 6, stride=1),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(3, 1, 8, stride=1),
-                        nn.Sigmoid())
-
-                def forward(self, x):
-                    x = self.encoder(x)
-                    x = self.decoder(x.view(x.size(0), 16, 10, 10))
                     return x
 
 
@@ -187,7 +203,7 @@ for iteration in range(2):
                         nn.ConvTranspose2d(16, 6, 6, stride=2),
                         nn.ReLU(True),
                         nn.ConvTranspose2d(6, 1, 6, stride=2),
-                        nn.Sigmoid())    
+                        nn.ReLU())    
                     
                 def forward(self, x):
                     x = self.encoder1(x)
@@ -228,7 +244,7 @@ for iteration in range(2):
                         nn.ConvTranspose2d(6, 3, 6, stride=1),
                         nn.ReLU(),
                         nn.ConvTranspose2d(3, 1, 8, stride=1),
-                        nn.Sigmoid())   
+                        nn.ReLU())   
                     
                 def forward(self, x):
                     x = self.encoder1(x)
@@ -304,7 +320,7 @@ for iteration in range(2):
             VF.plot_output('out_' + stage, num_epoch, test_labels, test_outputs, img_size, True, saveSVG=True)
 
             # save model and state_dict
-            VF.save_model(net, 'Autoencoder_' + str(iteration_2))
+            VF.save_model(net, 'Autoencoder_' + str(iteration) + '_' + str(iteration_2))
 
             # obtain image difference
             img_diff = VF.image_difference(test_labels, test_outputs)
@@ -340,9 +356,9 @@ for iteration in range(2):
             VF.plot_output(stage, num_epoch, test_labels, test_output, img_size, saveSVG=True)
 
 
-        time.sleep(5)
-        os.rename('RESULTS', 'RESULTS_' + str(iteration) + '_' + str(iteration_2))
-        time.sleep(5)
+        time.sleep(2)
+        os.rename('RESULTS', stage)
+        time.sleep(2)
 
         # clear Variable explorer in Spyder
 #        def __reset__(): get_ipython().magic('reset -sf')

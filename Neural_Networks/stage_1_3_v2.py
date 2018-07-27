@@ -27,13 +27,13 @@ Train = 1
 
 device_type = 'cuda'
 learning_rate = 0.001       # 0.001
-num_epoch = 4000
-mini_batch_size = 50       # 100
+num_epoch = 5
+mini_batch_size = 20       # 100
 momentum = 0.9
 img_size = 64
 num_channels = 1
 
-split = 7/8               # 6/10, 5000
+split = 4/5              # 6/10, 5000
 
 
 device = torch.device(device_type)  # cpu or cuda
@@ -43,31 +43,39 @@ validation_model = '.pt'
 
 # =========================== PREPARE DATA ====================================
 
-number_of_elements = 10000
-points_and_fix = GDF.automate_get_params(number_of_elements)
-
-input_data = torch.zeros((number_of_elements, 5, 6))
-input_data = input_data.float()
-for i in range(number_of_elements):
-    input_data[i] = torch.from_numpy(points_and_fix[i])
+#number_of_elements = 10000
+#points_and_fix = GDF.automate_get_params(number_of_elements)
+#
+#input_data = torch.zeros((number_of_elements, 5, 6))
+#input_data = input_data.float()
+#for i in range(number_of_elements):
+#    input_data[i] = torch.from_numpy(points_and_fix[i])
 
 
 # ==================== INPUT DATA =============================================
-Inputs = input_data.view(input_data.size(0), 1, 1, 5, 6)
-#Labels = np.load('./DATA/02_data_diffShape/Labels_DataSet.npy')
-#Labels = np.load('./DATA/01_data_noPress/Labels_DataSet.npy')
-Labels = np.load('./DATA/03_data_new/Labels_DataSet.npy')
+#Inputs = input_data.view(input_data.size(0), 1, 1, 5, 6)
+#Inputs = torch.from_numpy(np.load('./DATA/03_data_new/InputParams_matrix.npy'))
+#Inputs = Inputs.view(Inputs.size(0), 1, 1, 5, 6)
+#Labels = np.load('./DATA/03_data_new/Labels_DataSet.npy')
+Inputs = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/Params_DataSet.npy'))
+Inputs = Inputs.view(Inputs.size(0), 1, 1, 5, 6)
+Labels = np.load('./DATA/04_diffShapeBEST/Labels_DataSet.npy')
 
-Inputs = Inputs[:8000]
-Labels = Labels[:8000]
+#Inputs = Inputs[:5000]
+#Labels = Labels[:5000]
+
+# check data
+#VF.plot_sample_param_and_label(Inputs, Labels)
+
 train_inputs, train_labels, test_inputs, test_labels = VF.load_data(Inputs, Labels, split, mini_batch_size, device, img_size)
+
 
 print('Data Prepared!')
 
 
-for iteration in range(2):
+for iteration in range(1):
 
-    for iteration_2 in range(2):
+    for iteration_2 in range(1,3):
 
         start_time = 0
         start_time = time.time()
@@ -88,16 +96,16 @@ for iteration in range(2):
                     self.converter= nn.Sequential(
                         nn.Linear(5*6, 500),
                         nn.ReLU(True),
-                        nn.Dropout(),
+                        nn.Dropout(0.2),
                         nn.Linear(500, 1200),
                         nn.ReLU(True),
-                        nn.Dropout(),
+                        nn.Dropout(0.2),
                         nn.Linear(1200, 2000),
                         nn.ReLU(True),
-                        nn.Dropout(),
+                        nn.Dropout(0.5),
                         nn.Linear(2000, 2000),
                         nn.ReLU(),
-                        nn.Dropout(),
+                        nn.Dropout(0.5),
                         nn.Linear(2000, 64*64),
                         nn.ReLU())
 
@@ -114,16 +122,13 @@ for iteration in range(2):
                 def __init__(self):
                     super(Net, self).__init__()
                     self.converter= nn.Sequential(
-                        nn.Linear(5*6, 500),
+                        nn.Linear(5*6, 100),
                         nn.ReLU(),
                         nn.Dropout(0.2),
-                        nn.Linear(500, 1000),
+                        nn.Linear(100, 400),
                         nn.ReLU(),
                         nn.Dropout(0.2),
-                        nn.Linear(1000, 1400),
-                        nn.ReLU(),
-                        nn.Dropout(0.2),
-                        nn.Linear(1400, 1600),
+                        nn.Linear(400, 16*10*10),
                         nn.ReLU())
                     self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
                         nn.ConvTranspose2d(16, 10, 6, stride=2),
@@ -196,14 +201,11 @@ for iteration in range(2):
         # calling the model
         net = Net().to(device)
 
-        if iteration == 0:
-            criterion = nn.L1Loss().to(device)
-        else:
-            criterion = nn.SmoothL1Loss().to(device)
+        criterion = nn.MSELoss().to(device)
 #        criterion = nn.BCELoss()
 #        criterion = nn.PoissonNLLLoss()
-#        optimizer = optim.Adam(params=net.parameters(), lr=learning_rate)
-        optimizer = optim.SGD(params=net.parameters(), lr=learning_rate, momentum=momentum)
+        optimizer = optim.Adam(params=net.parameters(), lr=learning_rate)
+#        optimizer = optim.SGD(params=net.parameters(), lr=learning_rate, momentum=momentum)
 
         params = list(net.parameters())
         loss_sum = 0
@@ -243,7 +245,6 @@ for iteration in range(2):
 #                    loss_sum += loss.data[0]
 
                     net.zero_grad()
-
 
 
                 end_time = time.time()
@@ -301,9 +302,9 @@ for iteration in range(2):
             VF.plot_output('out_' + stage, num_epoch, test_labels, test_output, img_size, saveSVG=True)
 
 
-        time.sleep(5)
+        time.sleep(2)
         os.rename('RESULTS', 'RESULTS_' + stage )
-        time.sleep(5)
+        time.sleep(2)
 
         os.remove('report_plot.png')
         os.remove('report_output.png')

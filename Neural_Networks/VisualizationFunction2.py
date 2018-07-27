@@ -24,13 +24,15 @@ import datetime
 
 import numpy as np
 import matplotlib.pyplot as plt
-plt.switch_backend('agg')   # for ssh 
+#plt.switch_backend('agg')   # for ssh 
 import matplotlib.font_manager as font_manager
 from math import sqrt
 #import scipy.io as sio  # to save mat file
 from scipy.io import savemat
 from openpyxl import load_workbook
 from openpyxl import drawing
+
+import random
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -46,14 +48,19 @@ def load_data(Inputs, Labels, split, batch_size, device, img_size):
         pass
     else:
         Inputs = torch.from_numpy(Inputs)
-    Labels = torch.from_numpy(Labels)
+    
+    if type(Labels) == torch.Tensor:
+        pass
+    else:
+        Labels = torch.from_numpy(Labels)
+
 
     train_dataset = int((Inputs.size(0))*split)
 
-    Train_Inputs = Inputs[ : train_dataset]
-    Train_Labels = Labels[ : train_dataset]
-    Test_Inputs = Inputs[train_dataset : ]
-    Test_Labels = Labels[train_dataset : ]
+    Train_Inputs = Inputs[train_dataset :]
+    Train_Labels = Labels[train_dataset :]
+    Test_Inputs = Inputs[: train_dataset]
+    Test_Labels = Labels[: train_dataset]
 
     train_inputs = Variable(Train_Inputs.float()).to(device)
     train_labels = Variable(Train_Labels.float()).to(device)
@@ -77,8 +84,8 @@ def load_params(Params, split, batch_size, device, img_size):
 
     train_dataset = int((Params.size(0))*split)
 
-    Train_Params = Params[ : train_dataset]
-    Test_Params = Params[train_dataset : ]
+    Train_Params = Params[: train_dataset]
+    Test_Params = Params[: train_dataset]
 
     train_params = Variable(Train_Params.float()).to(device)
     test_params = Variable(Test_Params.float()).to(device)
@@ -116,7 +123,7 @@ def train_loss(model, train_inputs, train_labels, mini_batch_size, criterion, de
     total_train_loss = train_loss / n
     total_train_loss = np.round(float(total_train_loss), 4)
 
-    return total_train_loss
+    return total_train_loss, train_outputs
 
 
 
@@ -147,7 +154,7 @@ def test_loss(model, test_inputs, test_labels, mini_batch_size, criterion, devic
     total_test_loss = test_loss / n
     total_test_loss = np.round(float(total_test_loss), 4)
 
-    return total_test_loss, test_labels, test_outputs
+    return total_test_loss, test_outputs
 
 
 # ============================= CALCULATE MIN / SEC ===========================
@@ -185,19 +192,19 @@ def image_difference(test_label, test_output):
 
 
 # =========================== PRINT PROGRESS ==================================
-def epoch_progress(epoch, num_epoch, mini_batch_size, model, train_input, train_output, test_input,
-                   test_output, criterion, start_time, end_time, img_size, device):
+def epoch_progress(epoch, num_epoch, mini_batch_size, model, train_inputs, train_labels, test_inputs,
+                   test_labels, criterion, start_time, end_time, img_size, device):
 
     # obtain train_loss
-    train_loss_value = train_loss(model, train_input, train_output, mini_batch_size, criterion, device)
+    train_loss_value, train_output = train_loss(model, train_inputs, train_labels, mini_batch_size, criterion, device)
 
     # obtain test_loss
     if epoch == num_epoch:
-        test_loss_value, test_label, test_output = test_loss(model, test_input, test_output, mini_batch_size, criterion, device)
+        test_loss_value, test_output = test_loss(model, test_inputs, test_labels, mini_batch_size, criterion, device)
         test_label = 0
         test_output = 0
     else:
-        test_loss_value, test_label, test_output = test_loss(model, test_input, test_output, mini_batch_size, criterion, device)
+        test_loss_value, test_output = test_loss(model, test_inputs, test_labels, mini_batch_size, criterion, device)
         
 
     # calculate time
@@ -589,3 +596,29 @@ def create_report(model, stage, model_specification):
 #    os.system('cd RESULTS && convert ' + file_name + '.xlsx ' + file_name + '.pdf')
 #    os.system('mv  -v ./RESULTS/_dirname/magick-*.pdf ./RESULTS/' + file_name + '.pdf')
 #    os.system('cd RESULTS && rmdir _dirname && cd .. && rm report_plot.png && rm report_output.png')
+    
+    
+    
+def plot_sample_param_and_label(params, labels):
+    
+    if type(params) == torch.Tensor:
+        pass
+    else:
+        params = torch.from_numpy(params)
+    
+    if type(labels) == torch.Tensor:
+        pass
+    else:
+        labels = torch.from_numpy(labels)
+    
+    # get number
+    number = random.randint(0, int(labels.size(0)))
+    
+    # label
+    label_img = labels.view(labels.size(0) * labels.size(1), 64, 64)
+    grid_label = (Variable(label_img[number, :, :]).data).cpu().numpy()
+    plt.imshow(grid_label.T, extent=(0, 64, 0, 64), origin='1')
+    plt.savefig('one.svg')
+    
+    # params
+    print(params[number,0,:,:])    

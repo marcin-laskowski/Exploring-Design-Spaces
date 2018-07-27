@@ -385,8 +385,8 @@ def automate_get_params(number_of_elements):
         # read the file from the folder
 #        pentagon_name = './input_params/InputParams{}.txt'.format(item)
 #        pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
-#        pentagon_name = './DATA/01_data_noPress/input_params/InputParams{}.txt'.format(item)
-        pentagon_name = './DATA/03_data_new/input_params/InputParams{}.txt'.format(item)
+        pentagon_name = './DATA/01_data_noPress/input_params/InputParams{}.txt'.format(item)
+#        pentagon_name = './DATA/03_data_new/input_params/InputParams{}.txt'.format(item)
 
         # get the pentagon parameters
         pentagon_params = get_params(pentagon_name)
@@ -453,10 +453,11 @@ def automate_get_fix_and_force(number_of_elements):
 #        pentagon_name = './input_params/InputParams{}.txt'.format(item)
 #        pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
         pentagon_name = './DATA/01_data_noPress/input_params/InputParams{}.txt'.format(item)
+#        pentagon_name = './DATA/03_data_new/input_params/InputParams{}.txt'.format(item)
 
 
         # get the pentagon parameters
-        pentagon_params = get_params(pentagon_name)
+        pentagon_params = get_fix_and_force(pentagon_name)
 
         # add pentagon matrix to the stack
         in_matrix.append(pentagon_params)

@@ -2,13 +2,13 @@
 Convolution Calculator
 """
 
-W1 = 8
-H1 = 8
-D1 = 12
+W1 = 4
+H1 = 4
+D1 = 30
 
 # ====================== CONVOLUTION LAYER =========================
 conv_input = [W1, H1, D1]
-K = 12
+K = 20
 F = 3
 S = 1
 P = 1
@@ -24,8 +24,8 @@ conv_output = [W2, H2, D2]
 # ========================== POOLING ================================
 pool_input = [W1, H1, D1]
 
-F = 2
-S = 2
+F = 4
+S = 4
 
 W2 = (W1 - F) / S + 1
 H2 = (H1 - F) / S + 1
@@ -37,10 +37,10 @@ pool_output = [W2, H2, D2]
 
 # ================== TRANSVERSE CONVOLUTION LAYER ====================
 transconv_input = [W1, H1, D1]
-K = 1
-F = 3
+K = 25
+F = 2
 S = 1
-P = 1
+P = 0
 outP = 0
 
 W2 = (W1 - 1) * S - 2*P + F + outP
@@ -54,7 +54,7 @@ print(transconv_output)
 # =========================== UNPOOLING =============================
 unpool_input = [W1, H1, D1]
 F = 2
-S = 2
+S = 1
 P = 0
 
 
@@ -63,4 +63,4 @@ H2 = (H1 - 1) * S - 2*P + F
 D2 = D1
 
 unpool_output = [W2, H2, D2]
-print(unpool_output)
+#print(unpool_output)
