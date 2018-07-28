@@ -552,3 +552,17 @@ def save_as_img(matrix, img_name, colour):
     image_inv = Image.open('./images/' + img_name + '.png')
     inverted_image = PIL.ImageOps.invert(image_inv)
     inverted_image.save('./images/inv' + img_name + '.png')
+
+
+
+###################################################################################
+###################################################################################
+
+def force_to_img(params, img_size):
+    pass
+    
+    
+    
+    
+    
+    

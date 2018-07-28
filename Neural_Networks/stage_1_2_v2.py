@@ -27,7 +27,7 @@ Train = 1
 
 device_type = 'cuda'
 learning_rate = 0.001
-num_epoch = 300
+num_epoch = 200
 mini_batch_size = 50
 momentum = 0.9
 img_size = 64
@@ -55,9 +55,9 @@ Inputs = np.load('./DATA/05_noPressBEST/Inputs_DataSet.npy')
 Labels = np.load('./DATA/05_noPressBEST/Labels_DataSet.npy')
 Params = np.load('./DATA/05_noPressBEST/FixLoads_DataSet.npy')
 
-#Inputs = Inputs[:6000]
-#Labels = Labels[:6000]
-#Params = Params[:6000]
+#Inputs = Inputs[3000:]
+#Labels = Labels[3000:]
+#Params = Params[3000:]
 
 train_inputs, train_labels, test_inputs, test_labels = VF.load_data(Inputs, Labels, split, mini_batch_size, device, img_size)
 train_params, test_params = VF.load_params(Params, split, mini_batch_size, device, img_size)
@@ -66,9 +66,9 @@ train_params, test_params = VF.load_params(Params, split, mini_batch_size, devic
 
 # ========================== MODEL ============================================
 
-for iteration in range(2):
+for iteration in range(3, 4):
 
-    for iteration_2 in range(1,3):
+    for iteration_2 in range(3):
 
         start_time = 0
         start_time = time.time()
@@ -97,20 +97,27 @@ for iteration in range(2):
                     self.encoder = nn.Sequential(
                         nn.Linear(64*64, 1000),
                         nn.ReLU(True),
+                        nn.Dropout(0.5),
                         nn.Linear(1000, 500),
                         nn.ReLU(True),
+                        nn.Dropout(0.5),
                         nn.Linear(500, 100),
                         nn.ReLU(True),
+                        nn.Dropout(0.2),
                         nn.Linear(100, 40),
                         nn.ReLU())
                     self.converter = nn.Sequential(
-                        nn.Linear(60, 100),
+                        nn.Linear(60, 200),
                         nn.ReLU(True),
-                        nn.Linear(100, 500),
+                        nn.Dropout(0.2),
+                        nn.Linear(200, 200),
                         nn.ReLU(True),
+                        nn.Dropout(0.2),
+                        nn.Linear(200, 500),
+                        nn.ReLU(True),
+                        nn.Dropout(0.2),
                         nn.Linear(500, 16*10*10),
-                        nn.ReLU(True),
-                        nn.Dropout())
+                        nn.ReLU())
                     self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
                         nn.ConvTranspose2d(16, 10, 6, stride=2),
                         nn.BatchNorm2d(10),
@@ -151,13 +158,16 @@ for iteration in range(2):
                         nn.MaxPool2d(4,4),
                         nn.ReLU())                        
                     self.converter = nn.Sequential(
-                        nn.Linear(40+20, 500),
+                        nn.Linear(40+20, 200),
                         nn.ReLU(True),
                         nn.Dropout(0.2),
-                        nn.Linear(500, 500),
+                        nn.Linear(200, 500),
+                        nn.ReLU(True),
+                        nn.Dropout(0.3),
+                        nn.Linear(500, 300),
                         nn.ReLU(True),
                         nn.Dropout(0.5),
-                        nn.Linear(500, 200),
+                        nn.Linear(300, 200),
                         nn.ReLU())
                     self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
                         nn.ConvTranspose2d(200,50,4,4,0,0),
@@ -169,7 +179,7 @@ for iteration in range(2):
                         nn.ConvTranspose2d(10,5,2,2,0,0),
                         nn.BatchNorm2d(5),
                         nn.ReLU(),
-                        nn.ConvTranspose2d(5,2,1,1,0,0),
+                        nn.ConvTranspose2d(5,2,2,2,0,0),
                         nn.BatchNorm2d(2),
                         nn.ReLU(),
                         nn.ConvTranspose2d(2,1,1,1,0,0),
@@ -202,13 +212,16 @@ for iteration in range(2):
                         nn.MaxPool2d(4,4),
                         nn.ReLU())                        
                     self.converter = nn.Sequential(
-                        nn.Linear(40+20, 150),
+                        nn.Linear(40+20, 200),
                         nn.ReLU(True),
                         nn.Dropout(0.2),
-                        nn.Linear(150, 200),
+                        nn.Linear(200, 400),
                         nn.ReLU(True),
                         nn.Dropout(0.5),
-                        nn.Linear(200, 16*5*5),
+                        nn.Linear(400, 1000),
+                        nn.ReLU(True),
+                        nn.Dropout(0.5),
+                        nn.Linear(1000, 16*5*5),
                         nn.ReLU())
                     self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
                         nn.ConvTranspose2d(16,12,2,2,0,0),
@@ -236,7 +249,61 @@ for iteration in range(2):
                     y = y.view(y.size(0), 20)
                     x = torch.cat((x, y), 1)
                     x = self.converter(x)
-                    x = self.decoder(x.view(x.size(0), 200, 1, 1))
+                    x = self.decoder(x.view(x.size(0), 16, 5, 5))
+                    x = x.view(x.size(0), 1, 64, 64)
+                    return x
+                
+                
+        elif iteration == 3:
+            class Net(nn.Module):
+                def __init__(self):
+                    super(Net, self).__init__()
+                    self.encoder = nn.Sequential(
+                        nn.Conv2d(1,6,3,1,1),
+                        nn.MaxPool2d(4,4),
+                        nn.ReLU(),
+                        nn.Conv2d(6,12,3,1,1),
+                        nn.MaxPool2d(4,4),
+                        nn.ReLU(),
+                        nn.Conv2d(12,40,3,1,1),
+                        nn.MaxPool2d(4,4),
+                        nn.ReLU())                        
+                    self.converter = nn.Sequential(
+                        nn.Linear(40+20, 200),
+                        nn.ReLU(True),
+                        nn.Dropout(0.2),
+                        nn.Linear(200, 400),
+                        nn.ReLU(True),
+                        nn.Dropout(0.5),
+                        nn.Linear(400, 1000),
+                        nn.ReLU(True),
+                        nn.Dropout(0.5),
+                        nn.Linear(1000, 16*10*10),
+                        nn.ReLU())
+                    self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
+                        nn.ConvTranspose2d(16,12,2,2,0,0),
+                        nn.BatchNorm2d(12),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(12,10,2,2,0,0),
+                        nn.BatchNorm2d(10),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(10,7,6,1,0,0),
+                        nn.BatchNorm2d(7),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(7,5,10,1,0,0),
+                        nn.BatchNorm2d(5),
+                        nn.ReLU(),
+                        nn.ConvTranspose2d(5,1,11,1,0,0),
+                        nn.ReLU())
+            
+                def forward(self, x, y):
+                    x = x.view(x.size(0), 1, 64, 64)
+                    x = self.encoder(x)
+                    x = x.view(x.size(0), 40)
+                    y = y.view(y.size(0), 20)
+                    x = torch.cat((x, y), 1)
+                    x = self.converter(x)
+                    x = self.decoder(x.view(x.size(0), 16, 10, 10))
                     x = x.view(x.size(0), 1, 64, 64)
                     return x
             
@@ -270,7 +337,15 @@ for iteration in range(2):
         # ============================== TRAINING =====================================
         if Train == True:
             # Learning process
+            learning_rate = 0.001
+            
             for epoch in range(num_epoch):
+                
+                # adjust learning rate
+#                if epoch%10 == 0:
+#                    learning_rate = learning_rate * 0.98
+#                else:
+#                    pass
                 
                 running_loss = 0.0
                 
@@ -289,9 +364,9 @@ for iteration in range(2):
                     optimizer.step()
 #                    running_loss += loss.data[0]
 #                    loss_sum += loss.data[0]
-
+                    
                     net.zero_grad()
-
+                    
 
 
                 end_time = time.time()
@@ -307,6 +382,7 @@ for iteration in range(2):
             # plot results
             VF.result_plot('loss_' + stage, all_store_data, criterion, True, saveSVG=True)
             VF.plot_output('out_' + stage, num_epoch, test_labels, test_outputs, img_size, True, saveSVG=True)
+            VF.plot_output('in_' + stage, num_epoch, train_labels, train_outputs, img_size, True, saveSVG=True)
 
             # save model and state_dict
             VF.save_model(net, 'Stage_1_2_' + str(iteration_2))

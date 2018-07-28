@@ -24,7 +24,7 @@ import datetime
 
 import numpy as np
 import matplotlib.pyplot as plt
-#plt.switch_backend('agg')   # for ssh 
+plt.switch_backend('agg')   # for ssh 
 import matplotlib.font_manager as font_manager
 from math import sqrt
 #import scipy.io as sio  # to save mat file

@@ -24,7 +24,7 @@ import datetime
 
 import numpy as np
 import matplotlib.pyplot as plt
-#plt.switch_backend('agg')   # for ssh 
+plt.switch_backend('agg')   # for ssh 
 import matplotlib.font_manager as font_manager
 from math import sqrt
 #import scipy.io as sio  # to save mat file
@@ -50,10 +50,10 @@ def load_data(Inputs, Labels, split, batch_size, device, img_size):
 
     train_dataset = int((Inputs.size(0))*split)
 
-    Train_Inputs = Inputs[ : train_dataset]
-    Train_Labels = Labels[ : train_dataset]
-    Test_Inputs = Inputs[train_dataset : ]
-    Test_Labels = Labels[train_dataset : ]
+    Train_Inputs = Inputs[train_dataset :]
+    Train_Labels = Labels[train_dataset :]
+    Test_Inputs = Inputs[: train_dataset]
+    Test_Labels = Labels[: train_dataset]
 
     train_inputs = Variable(Train_Inputs.float()).to(device)
     train_labels = Variable(Train_Labels.float()).to(device)
@@ -82,21 +82,21 @@ def load_params(Params, split, batch_size, device, img_size):
 
     train_dataset = int((Params.size(0))*split)
 
-    Train_Params = Params[ : train_dataset]
-    Test_Params = Params[train_dataset : ]
+    Train_Params = Params[train_dataset :]
+    Test_Params = Params[: train_dataset]
 
     train_params = Variable(Train_Params.float()).to(device)
     test_params = Variable(Test_Params.float()).to(device)
 
-    train_params = train_params.view(Train_Params.size(0), num_channels, Params.size(3), Params.size(4))
-    test_params = test_params.view(Test_Params.size(0), num_channels, Params.size(3), Params.size(4))
+    train_params = train_params.view(Train_Params.size(0), num_channels, Params.size(-2), Params.size(-1))
+    test_params = test_params.view(Test_Params.size(0), num_channels, Params.size(-2), Params.size(-1))
 
 
     return train_params, test_params
 
 # ============================= TRAIN LOSS ====================================
 def train_loss(model, train_inputs, train_labels, train_params, mini_batch_size, criterion, device):
-
+    
     num_channels = 1
 
     # prepare to size the size of the tensor
@@ -109,7 +109,7 @@ def train_loss(model, train_inputs, train_labels, train_params, mini_batch_size,
     n = 0
     train_loss = 0
     train_outputs = torch.zeros((train_labels.size(0), train_labels.size(1), train_labels.size(2), train_labels.size(3)))
-    for i in range(0, train_inputs.size(0), mini_batch_size):
+    for i in range(0, train_inputs.size(0), train_inputs.size(0)):
         train_input = train_inputs[i:i+mini_batch_size, :, :, :]  # train_input.size --> (:, 1, 64, 64)
         train_label = train_labels[i:i+mini_batch_size, :, :, :]  # train_labels.size --> (:, 1, 64, 64)
         train_param = train_params[i:i+mini_batch_size, :, :, :]
@@ -130,7 +130,7 @@ def train_loss(model, train_inputs, train_labels, train_params, mini_batch_size,
 
 # ============================ TEST LOSS ======================================
 def test_loss(model, test_inputs, test_labels, test_params, mini_batch_size, criterion, device):
-
+    
     num_channels = 1
 
     # prepare to size the size of the tensor
@@ -142,7 +142,7 @@ def test_loss(model, test_inputs, test_labels, test_params, mini_batch_size, cri
     n = 0
     test_loss = 0
     test_outputs = torch.zeros((test_labels.size(0), test_labels.size(1), test_labels.size(2), test_labels.size(3)))
-    for i in range(0, test_inputs.size(0), mini_batch_size):
+    for i in range(0, test_inputs.size(0), test_inputs.size(0)):
         test_input = test_inputs[i:i+mini_batch_size, :, :, :]  # train_input.size --> (:, 1, 64, 64)
         test_label = test_labels[i:i+mini_batch_size, :, :, :]  # train_labels.size --> (:, 1, 64, 64)
         test_param = test_params[i:i+mini_batch_size, :, :, :]
@@ -200,14 +200,9 @@ def epoch_progress(epoch, num_epoch, mini_batch_size, model, train_inputs, train
 
     # obtain train_loss
     train_loss_value, train_output = train_loss(model, train_inputs, train_labels, train_params, mini_batch_size, criterion, device)
-
+    
     # obtain test_loss
-    if epoch == num_epoch:
-        test_loss_value, test_output = test_loss(model, test_inputs, test_labels, test_params, mini_batch_size, criterion, device)
-        test_output = 0
-    else:
-        test_loss_value, test_output = test_loss(model, test_inputs, test_labels, test_params, mini_batch_size, criterion, device)
-        
+    test_loss_value, test_output = test_loss(model, test_inputs, test_labels, test_params, mini_batch_size, criterion, device)
 
     # calculate time
     epoch_time_min, epoch_time_sec = calculate_time(start_time, end_time)

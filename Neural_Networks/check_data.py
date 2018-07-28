@@ -20,20 +20,22 @@ warnings.filterwarnings("ignore")
 
 # ========================= PARAMETERS ========================================
 plot_step_images = False
-save_PDF_all_data = False
-create_best_data = True
+save_PDF_all_data = True
+create_best_data = False
 
 device = torch.device('cpu')
 img_size = 64
 
 
 # =========================== PREPARE DATA ====================================
-Inputs = torch.from_numpy(np.load('./DATA/01_data_noPress/Images_DataSet.npy'))
-Labels = torch.from_numpy(np.load('./DATA/01_data_noPress/Labels_DataSet.npy'))
+#Inputs = torch.from_numpy(np.load('./DATA/01_data_noPress/Images_DataSet.npy'))
+#Labels = torch.from_numpy(np.load('./DATA/01_data_noPress/Labels_DataSet.npy'))
 #Inputs = torch.from_numpy(np.load('./DATA/03_data_new/Images_DataSet.npy'))
 #Labels = torch.from_numpy(np.load('./DATA/03_data_new/Labels_DataSet.npy'))
 #Inputs = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/Inputs_DataSet.npy'))
 #Labels = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/Labels_DataSet.npy'))
+Inputs = torch.from_numpy(np.load('./DATA/06_noPress_50force/Images_DataSet.npy'))
+Labels = torch.from_numpy(np.load('./DATA/06_noPress_50force/Labels_DataSet.npy'))
 
 #Inputs = Variable(Inputs.float()).to(device)
 #Labels = Variable(Labels.float()).to(device)
@@ -117,7 +119,7 @@ if save_PDF_all_data == True:
     nrows = 10
     n = 0
     
-    for batch in range(100):
+    for batch in range(10):
     
     #    data_numbers = data_numbers[batch:batch+(ncols*nrows)]
     #    sum_of_img = sum_of_img[batch:batch+(ncols*nrows)]
@@ -143,10 +145,10 @@ if save_PDF_all_data == True:
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
         plt.subplots_adjust(top = 0.8)
         
-        if not os.path.exists('./LABELS_1'):
-            os.mkdir('./LABELS_1')
+        if not os.path.exists('./LABELS_6'):
+            os.mkdir('./LABELS_6')
         
-        fig.savefig('./LABELS_1/all_labels_' + str(batch) + '.pdf')
+        fig.savefig('./LABELS_6/all_labels_' + str(batch) + '.pdf')
         
         print(str(batch) + '% DONE!')
 

@@ -2,8 +2,8 @@
 Convolution Calculator
 """
 
-W1 = 4
-H1 = 4
+W1 = 32
+H1 = 16
 D1 = 30
 
 # ====================== CONVOLUTION LAYER =========================
@@ -39,7 +39,7 @@ pool_output = [W2, H2, D2]
 transconv_input = [W1, H1, D1]
 K = 25
 F = 2
-S = 1
+S = 2
 P = 0
 outP = 0
 
