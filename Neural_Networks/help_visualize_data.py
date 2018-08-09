@@ -62,6 +62,9 @@ Labels = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/Labels_DataSet.npy'))
 Inputs = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/Inputs_DataSet.npy'))
 Params = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/Params_DataSet.npy'))
 FixLoads = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/FixLoads_DataSet.npy'))
+#Labels = torch.from_numpy(np.load('./DATA/07_noPressNewShape/Labels_DataSet.npy'))
+#Inputs = torch.from_numpy(np.load('./DATA/07_noPressNewShape/Images_DataSet.npy'))
+
 
 Params = Params.view(Params.size(0), 1, 1, 5, 6)
 FixLoads = FixLoads.view(FixLoads.size(0), 1, 1, 5, 4)
@@ -130,7 +133,7 @@ plt.savefig('./images.pdf')
 
 
 
-
+"""
 print(train_params[num_1,0,:,:])
 #print(train_fixloads[num_1,0,0,:,:])
 print(train_params[num_2,0,:,:])
@@ -144,4 +147,4 @@ print(train_params[num_4,0,:,:])
 #temp2 = temp.cpu().numpy()
 #plt.plot(temp2[:,0], temp2[:,1])
 #plt.savefig('test.svg')
-
+"""

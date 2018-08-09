@@ -11,7 +11,8 @@ import datetime
 from math import sqrt
 
 import GenerateDataFunctions as GDF
-import VisualizationFunction2_2 as VF
+import VisualizationFunction2 as VF
+import ModelStage_1_2 as M12
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -20,334 +21,201 @@ start_time = time.time()
 #from IPython import get_ipython
 
 
-
-
-# ========================= PARAMETERS ========================================
-Train = 1
-
-device_type = 'cuda'
-learning_rate = 0.001
-num_epoch = 300
-mini_batch_size = 50
-momentum = 0.9
-img_size = 64
-num_channels = 1
-
-split = 6/9
-
-
-device = torch.device(device_type)  # cpu or cuda
-
-validation_model = '.pt'
-
-
-
-# ============================= INPUT DATA ====================================
-#number_of_elements = 10000
-#fix_and_force = GDF.automate_get_fix_and_force(number_of_elements)
-#
-#input_data = torch.zeros((number_of_elements, 5, 4))
-#input_data = input_data.float()
-#for i in range(number_of_elements):
-#    input_data[i] = torch.from_numpy(fix_and_force[i])
+def network(args, model):
+    # ========================= PARAMETERS ========================================
+    stage = 'stage_1_2_' + args.name
     
-Inputs = np.load('./DATA/05_noPressBEST/Inputs_DataSet.npy')
-Labels = np.load('./DATA/05_noPressBEST/Labels_DataSet.npy')
-Params = np.load('./DATA/05_noPressBEST/FixLoads_DataSet.npy')
+    Train = 1                                   # True if you want to train
+    
+    device_type = args.device_type              # cpu or cuda
+    device = torch.device(device_type)
+    
+    learning_rate = args.lr                     # 0.001
+    num_epoch = args.epochs                     # 1000
+    mini_batch_size = args.batch                # 50
+    momentum = args.momentum                    # 0.9
+    img_size = 64                               # 64
+    num_channels = 1                            # 1
+    
+    split = args.split                          # 6/10 for 5000 epochs
+    
+    validation_model = '.pt'                    # load model
+    
+    
 
-#Inputs = Inputs[:6000]
-#Labels = Labels[:6000]
-#Params = Params[:6000]
+    # ============================= PREPARE DATA ===================================
+    #number_of_elements = 10000
+    #fix_and_force = GDF.automate_get_fix_and_force(number_of_elements)
+    #
+    #input_data = torch.zeros((number_of_elements, 5, 4))
+    #input_data = input_data.float()
+    #for i in range(number_of_elements):
+    #    input_data[i] = torch.from_numpy(fix_and_force[i])
+    
+    
+    # ==================== INPUT DATA =============================================
+    Inputs = np.load('./DATA/05_noPressBEST/Inputs_DataSet.npy')
+    Labels = np.load('./DATA/05_noPressBEST/Labels_DataSet.npy')
+    Params = np.load('./DATA/05_noPressBEST/FixLoads_DataSet.npy')
+    
+    # use part of the input data
+#    Inputs = Inputs[:1000]
+#    Labels = Labels[:1000]
+#    Params = Params[:1000]
+  
+    # check data
+    #VF.plot_sample_param_and_label(Inputs, Labels)
+    
+    # prepare data and split for training and testing
+    train_inputs, train_labels, test_inputs, test_labels = VF.load_data(Inputs, Labels, split, mini_batch_size, device, img_size)
+    train_params, test_params = VF.load_params(Params, split, mini_batch_size, device, img_size)
+    print('PROGRESS: Data Prepared!')
 
-train_inputs, train_labels, test_inputs, test_labels = VF.load_data(Inputs, Labels, split, mini_batch_size, device, img_size)
-train_params, test_params = VF.load_params(Params, split, mini_batch_size, device, img_size)
+    # calcualte time
+    start_time = 0
+    start_time = time.time()
 
+    # calling the model
+    net = model.to(device)
+    
 
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(params=net.parameters(), lr=learning_rate)
 
-# ========================== MODEL ============================================
+    params = list(net.parameters())
+    loss_sum = 0
+    best_test_value = 0
 
-for iteration in range(2):
+    train_test_loss = np.zeros((num_epoch, 2))
+    all_store_data = np.zeros((num_epoch, 3))
+    best_test_loss_value = 1000
 
-    for iteration_2 in range(1,3):
-
-        start_time = 0
-        start_time = time.time()
-
-        # -----------------------------------------------------------------------------
-        stage = 'Stage_1_2_' + str(iteration) + '_' + str(iteration_2)
+    # ============================== TRAINING =====================================
+    if Train == True:
         
-        print('===================== ' + stage + ' =======================')
+        for epoch in range(num_epoch):
+
+            for i in range(0, train_inputs.size(0), mini_batch_size):
+
+                # training data
+                train_input = train_inputs[i:i+mini_batch_size, :, :, :]  # (:, 1, 64, 64)
+                train_label = train_labels[i:i+mini_batch_size, :, :, :]  # (:, 1, 64, 64)
+                train_param = train_params[i:i+mini_batch_size, :, :, :]  # (:, 1, 5, 4)
+                
+                # forward path
+                train_out = net(train_input, train_param)
+
+                loss = criterion(train_out, train_label)
+                loss.backward()
+                optimizer.step()
+#                running_loss += loss.data[0]
+#                loss_sum += loss.data[0]
+                
+                net.zero_grad()
+                
+
+
+            end_time = time.time()
+            
+            # get training data
+            epoch_data = VF.epoch_progress(epoch, num_epoch, mini_batch_size, net, train_inputs, train_labels, train_params,
+                                           test_inputs, test_labels, test_params, criterion, start_time,
+                                           end_time, img_size, device)
+            
+            # store all training data
+            all_store_data[epoch, :] = epoch_data
+
+
+            # save best model
+            best_test_loss_value = VF.get_best_model(net, stage, best_test_loss_value, all_store_data[epoch, 2])
+         
+            
+        # stop training time
+        final_time = time.time()
+        print('PROGRESS: Training Done!')
         
-        if iteration_2 == 0:
-            mini_batch_size = 10
-        elif iteration_2 == 1:
-            mini_batch_size = 30
-        else:
-            mini_batch_size = 50
+        # get train_outputs and train_final_loss
+        train_total_loss, train_outputs = VF.get_loss_and_output(net, train_inputs, train_labels, train_params, 
+                                                                 mini_batch_size, criterion, device)
         
-
-        # ====================== NEURAL NETWORK CONFIGURATION =========================
-        # =================================================================================
-        # =================================================================================
-
-        if iteration == 0:
-            class Net(nn.Module):
-                def __init__(self):
-                    super(Net, self).__init__()
-                    self.encoder = nn.Sequential(
-                        nn.Linear(64*64, 1000),
-                        nn.ReLU(True),
-                        nn.Linear(1000, 500),
-                        nn.ReLU(True),
-                        nn.Linear(500, 100),
-                        nn.ReLU(True),
-                        nn.Linear(100, 40),
-                        nn.ReLU())
-                    self.converter = nn.Sequential(
-                        nn.Linear(60, 100),
-                        nn.ReLU(True),
-                        nn.Linear(100, 500),
-                        nn.ReLU(True),
-                        nn.Linear(500, 16*10*10),
-                        nn.ReLU(True),
-                        nn.Dropout())
-                    self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
-                        nn.ConvTranspose2d(16, 10, 6, stride=2),
-                        nn.BatchNorm2d(10),
-                        nn.ReLU(True),
-                        nn.ConvTranspose2d(10, 6, 6, stride=2),
-                        nn.BatchNorm2d(6),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(6, 3, 6, stride=1),
-                        nn.BatchNorm2d(3),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(3, 1, 8, stride=1),
-                        nn.ReLU())
+        # get test_outputs and test_final_loss
+        test_total_loss, test_outputs = VF.get_loss_and_output(net, test_inputs, test_labels, test_params, 
+                                                               mini_batch_size, criterion, device)
+        print('PROGRESS: Outputs obtained!')
             
-                def forward(self, x, y):
-                    x = x.view(x.size(0), 64*64)
-                    x = self.encoder(x)
-                    x = x.view(x.size(0), 40)
-                    y = y.view(y.size(0), 20)
-                    x = torch.cat((x, y), 1)
-                    x = self.converter(x)
-                    x = self.decoder(x.view(x.size(0), 16, 10, 10))
-                    x = x.view(x.size(0), 1, 64, 64)
-                    return x
-                
-
-        elif iteration == 1:
-            class Net(nn.Module):
-                def __init__(self):
-                    super(Net, self).__init__()
-                    self.encoder = nn.Sequential(
-                        nn.Conv2d(1,6,3,1,1),
-                        nn.MaxPool2d(4,4),
-                        nn.ReLU(),
-                        nn.Conv2d(6,12,3,1,1),
-                        nn.MaxPool2d(4,4),
-                        nn.ReLU(),
-                        nn.Conv2d(12,40,3,1,1),
-                        nn.MaxPool2d(4,4),
-                        nn.ReLU())                        
-                    self.converter = nn.Sequential(
-                        nn.Linear(40+20, 500),
-                        nn.ReLU(True),
-                        nn.Dropout(0.2),
-                        nn.Linear(500, 500),
-                        nn.ReLU(True),
-                        nn.Dropout(0.5),
-                        nn.Linear(500, 200),
-                        nn.ReLU())
-                    self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
-                        nn.ConvTranspose2d(200,50,4,4,0,0),
-                        nn.BatchNorm2d(50),
-                        nn.ReLU(True),
-                        nn.ConvTranspose2d(50,10,4,4,0,0),
-                        nn.BatchNorm2d(10),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(10,5,2,2,0,0),
-                        nn.BatchNorm2d(5),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(5,2,1,1,0,0),
-                        nn.BatchNorm2d(2),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(2,1,1,1,0,0),
-                        nn.ReLU())
-            
-                def forward(self, x, y):
-                    x = x.view(x.size(0), 1, 64, 64)
-                    x = self.encoder(x)
-                    x = x.view(x.size(0), 40)
-                    y = y.view(y.size(0), 20)
-                    x = torch.cat((x, y), 1)
-                    x = self.converter(x)
-                    x = self.decoder(x.view(x.size(0), 200, 1, 1))
-                    x = x.view(x.size(0), 1, 64, 64)
-                    return x
-                
-                
-        elif iteration == 2:
-            class Net(nn.Module):
-                def __init__(self):
-                    super(Net, self).__init__()
-                    self.encoder = nn.Sequential(
-                        nn.Conv2d(1,6,3,1,1),
-                        nn.MaxPool2d(4,4),
-                        nn.ReLU(),
-                        nn.Conv2d(6,12,3,1,1),
-                        nn.MaxPool2d(4,4),
-                        nn.ReLU(),
-                        nn.Conv2d(12,40,3,1,1),
-                        nn.MaxPool2d(4,4),
-                        nn.ReLU())                        
-                    self.converter = nn.Sequential(
-                        nn.Linear(40+20, 150),
-                        nn.ReLU(True),
-                        nn.Dropout(0.2),
-                        nn.Linear(150, 200),
-                        nn.ReLU(True),
-                        nn.Dropout(0.5),
-                        nn.Linear(200, 16*5*5),
-                        nn.ReLU())
-                    self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
-                        nn.ConvTranspose2d(16,12,2,2,0,0),
-                        nn.BatchNorm2d(12),
-                        nn.ReLU(True),
-                        nn.ConvTranspose2d(12,10,2,2,0,0),
-                        nn.BatchNorm2d(10),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(10,8,2,2,0,0),
-                        nn.BatchNorm2d(8),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(8,6,6,1,0,0),
-                        nn.BatchNorm2d(6),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(6,4,10,1,0,0),
-                        nn.BatchNorm2d(4),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(4,1,11,1,0,0),
-                        nn.ReLU())
-            
-                def forward(self, x, y):
-                    x = x.view(x.size(0), 1, 64, 64)
-                    x = self.encoder(x)
-                    x = x.view(x.size(0), 40)
-                    y = y.view(y.size(0), 20)
-                    x = torch.cat((x, y), 1)
-                    x = self.converter(x)
-                    x = self.decoder(x.view(x.size(0), 200, 1, 1))
-                    x = x.view(x.size(0), 1, 64, 64)
-                    return x
-            
-
-        else:
-            print("WRONG MODEL!")
-
-
-        # =================================================================================
-        # =================================================================================
-        # =================================================================================
-
-
-
-        # calling the model
-#        net = torch.nn.DataParallel(Net, device_ids=[0, 2])
-        net = Net().to(device)
         
+        # save output
+        VF.save_data(train_outputs, 'train_outputs')
+        VF.save_data(test_outputs, 'test_outputs')
 
-        criterion = nn.MSELoss()
-        optimizer = optim.Adam(params=net.parameters(), lr=learning_rate)
-#        optimizer = optim.SGD(params=net.parameters(), lr=learning_rate, momentum=momentum)
+        # plot results
+        VF.result_plot(stage, all_store_data, criterion, True, saveSVG=True)
+        VF.plot_output(stage, num_epoch, test_labels, test_outputs, img_size, True, saveSVG=True)
+        VF.plot_max_stress(test_labels, test_outputs, stage, all_store_data, criterion, True, saveSVG=True)
+        VF.draw_stress_propagation_plot(test_labels[0:4], test_outputs[0:4], stage, all_store_data, criterion, True, saveSVG=True)
+        VF.mean_and_CI(test_labels, test_outputs, stage, all_store_data, criterion, True, saveSVG=False)
+           
+        # save model and state_dict
+        VF.save_model(net, stage)
 
-        params = list(net.parameters())
-        loss_sum = 0
-        best_test_value = 0
+        # obtain image difference
+        img_diff = VF.image_difference(test_labels, test_outputs)
 
-        train_test_loss = np.zeros((num_epoch, 2))
-        all_store_data = np.zeros((num_epoch, 3))
+        time.sleep(5)
 
-        # ============================== TRAINING =====================================
-        if Train == True:
-            # Learning process
-            for epoch in range(num_epoch):
-                
-                running_loss = 0.0
-                
-                for i in range(0, train_inputs.size(0), mini_batch_size):
-
-                    # -------------------- TRAIN DATA ---------------------------------
-                    train_input = train_inputs[i:i+mini_batch_size, :, :, :]  # train_input.size --> (:, 1, 64, 64)
-                    train_label = train_labels[i:i+mini_batch_size, :, :, :]  # train_labels.size --> (:, 1, 64, 64)
-                    train_param = train_params[i:i+mini_batch_size, :, :, :]
-                    
-                    # forward path
-                    train_out = net(train_input, train_param)
-
-                    loss = criterion(train_out, train_label)
-                    loss.backward()
-                    optimizer.step()
-#                    running_loss += loss.data[0]
-#                    loss_sum += loss.data[0]
-
-                    net.zero_grad()
+        # save all parameters
+        model_specification = VF.net_specification(stage, str(train_inputs.size(0) + test_inputs.size(0)),
+                                                   str(train_inputs.size(2)) +' x ' + str(train_inputs.size(3)),
+                                                   str(test_inputs.size(2)) +' x ' + str(test_inputs.size(3)),
+                                                   num_epoch, mini_batch_size, learning_rate, momentum, criterion,
+                                                   optimizer, str(train_inputs.size(0)*train_inputs.size(1)) + ' / ' + str(test_inputs.size(0)*test_inputs.size(1)),
+                                                   device_type, np.min(all_store_data[:,1]), np.max(all_store_data[:,1]),
+                                                   np.min(all_store_data[:,2]), np.max(all_store_data[:,2]),
+                                                   train_total_loss,
+                                                   test_total_loss,
+                                                   [start_time, final_time],
+                                                   sqrt(all_store_data[num_epoch-1, 2]), img_diff)
 
 
-
-                end_time = time.time()
-                
-                epoch_data, train_outputs, test_outputs = VF.epoch_progress(epoch, num_epoch, mini_batch_size, net, train_inputs, train_labels, train_params,
-                                                                            test_inputs, test_labels, test_params, criterion, start_time,
-                                                                            end_time, img_size, device)
-
-                all_store_data[epoch, :] = epoch_data
-
-            final_time = time.time()
-
-            # plot results
-            VF.result_plot('loss_' + stage, all_store_data, criterion, True, saveSVG=True)
-            VF.plot_output('out_' + stage, num_epoch, test_labels, test_outputs, img_size, True, saveSVG=True)
-
-            # save model and state_dict
-            VF.save_model(net, 'Stage_1_2_' + str(iteration_2))
-
-            # obtain image difference
-            img_diff = VF.image_difference(test_labels, test_outputs)
-
-            time.sleep(5)
-
-            # save all parameters
-            model_specification = VF.net_specification(stage, train_input.size(0),
-                                                       str(train_inputs.size(2)) +' x ' + str(train_inputs.size(3)),
-                                                       str(test_inputs.size(2)) +' x ' + str(test_inputs.size(3)),
-                                                       num_epoch, mini_batch_size, learning_rate, momentum, criterion,
-                                                       optimizer, str(train_inputs.size(0)*train_inputs.size(1)) + ' / ' + str(test_inputs.size(0)*test_inputs.size(1)),
-                                                       device_type, np.min(all_store_data[:,1]), np.max(all_store_data[:,1]),
-                                                       np.min(all_store_data[:,2]), np.max(all_store_data[:,2]),
-                                                       sqrt(all_store_data[num_epoch-1, 1]),
-                                                       sqrt(all_store_data[num_epoch-1, 2]),
-                                                       [start_time, final_time],
-                                                       sqrt(all_store_data[num_epoch-1, 2]), img_diff)
-
-            time.sleep(5)
-            # create report
-            VF.create_report(net, stage, model_specification)
-
-
-        # ============================== TESTING ======================================
-        else:
-
-            # read model
-            val_net = torch.load('./RESULTS/' + validataion_model)
-            test_output = val_net(test_inputs)
-
-
-            VF.plot_output('out_' + stage, num_epoch, test_labels, test_output, img_size, saveSVG=True)
-
-
+        print('PROGRESS: Data Saved!')
         time.sleep(2)
-        os.rename('RESULTS', stage)
-        time.sleep(2)
+        
+        # create report
+        VF.create_report(net, stage, model_specification)
+        VF.create_report_page2(net, stage, model_specification)
+        print('PROGRESS: Report Created!')
 
-        # clear Variable explorer in Spyder
-#        def __reset__(): get_ipython().magic('reset -sf')
+
+    # ============================== TESTING ======================================
+    else:
+
+        # read model
+#        val_net = torch.load(validataion_model)
+        val_net = model
+        val_net.state_dict = validation_model_state_dict
+        test_output = val_net(test_inputs, test_params)
+        print('PROGRESS: Validation Done!')
+
+
+        VF.plot_output(stage, num_epoch, test_labels, test_output, img_size, saveSVG=True)
+        print('PROGRESS: DONE!')
+
+
+    # rename folder
+    time.sleep(2)
+    time_data = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
+    os.rename('RESULTS', 'RESULTS_' + stage + time_data)
+    
+    time.sleep(1)
+    print('PROGRESS: DONE!')
+    
+    
+    os.remove('report_plot.png')
+    os.remove('report_output.png')
+    os.remove('report_maxstress.png')
+    os.remove('report_stressprop.png')
+    os.remove('report_stresspropall.png')
+    
+    # clear Variable explorer in Spyder
+    # def __reset__(): get_ipython().magic('reset -sf')
+

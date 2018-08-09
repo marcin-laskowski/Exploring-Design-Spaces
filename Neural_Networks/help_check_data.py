@@ -34,8 +34,10 @@ img_size = 64
 #Labels = torch.from_numpy(np.load('./DATA/03_data_new/Labels_DataSet.npy'))
 #Inputs = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/Inputs_DataSet.npy'))
 #Labels = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/Labels_DataSet.npy'))
-Inputs = torch.from_numpy(np.load('./DATA/06_noPress_50force/Images_DataSet.npy'))
-Labels = torch.from_numpy(np.load('./DATA/06_noPress_50force/Labels_DataSet.npy'))
+#Inputs = torch.from_numpy(np.load('./DATA/06_noPress_50force/Images_DataSet.npy'))
+#Labels = torch.from_numpy(np.load('./DATA/06_noPress_50force/Labels_DataSet.npy'))
+Labels = torch.from_numpy(np.load('./DATA/07_noPressNewShape/Labels_DataSet.npy'))
+Inputs = torch.from_numpy(np.load('./DATA/07_noPressNewShape/Images_DataSet.npy'))
 
 #Inputs = Variable(Inputs.float()).to(device)
 #Labels = Variable(Labels.float()).to(device)
@@ -119,7 +121,7 @@ if save_PDF_all_data == True:
     nrows = 10
     n = 0
     
-    for batch in range(10):
+    for batch in range(100):
     
     #    data_numbers = data_numbers[batch:batch+(ncols*nrows)]
     #    sum_of_img = sum_of_img[batch:batch+(ncols*nrows)]
@@ -145,12 +147,13 @@ if save_PDF_all_data == True:
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
         plt.subplots_adjust(top = 0.8)
         
-        if not os.path.exists('./LABELS_6'):
-            os.mkdir('./LABELS_6')
+        if not os.path.exists('./LABELS_7'):
+            os.mkdir('./LABELS_7')
         
-        fig.savefig('./LABELS_6/all_labels_' + str(batch) + '.pdf')
+        fig.savefig('./LABELS_7/all_labels_' + str(batch) + '.pdf')
         
-        print(str(batch) + '% DONE!')
+        print(str(batch) + '%')
+    print('DONE!')
 
 
 

@@ -55,16 +55,18 @@ warnings.filterwarnings("ignore")
 # ============================= PREPARE DATA ==================================
 def load_data(Inputs, Labels, split, batch_size, device, img_size):
 
+    num_channels = 1
+
     if type(Inputs) == torch.Tensor:
         pass
     else:
         Inputs = torch.from_numpy(Inputs)
+    
     if type(Labels) == torch.Tensor:
         pass
     else:
         Labels = torch.from_numpy(Labels)
-    
-    num_channels = Inputs.size(2)
+
 
     train_dataset = int((Inputs.size(0))*split)
 
@@ -91,11 +93,6 @@ def load_data(Inputs, Labels, split, batch_size, device, img_size):
 # ==================== PREPARE DATA - ONLY PARAMETERS =========================
 def load_params(Params, split, batch_size, device, img_size):
 
-    if type(Params) == torch.Tensor:
-        pass
-    else:
-        Params = torch.from_numpy(Params)
-
     num_channels = 1
 
     train_dataset = int((Params.size(0))*split)
@@ -106,23 +103,21 @@ def load_params(Params, split, batch_size, device, img_size):
     train_params = Variable(Train_Params.float()).to(device)
     test_params = Variable(Test_Params.float()).to(device)
 
-    train_params = train_params.view(Train_Params.size(0), num_channels, Params.size(-2), Params.size(-1))
-    test_params = test_params.view(Test_Params.size(0), num_channels, Params.size(-2), Params.size(-1))
+    train_params = train_params.view(Train_Params.size(0), num_channels, Params.size(3), Params.size(4))
+    test_params = test_params.view(Test_Params.size(0), num_channels, Params.size(3), Params.size(4))
 
 
     return train_params, test_params
 
 
-
 # ============================ GET LOSS ======================================
-def get_loss(model, inputs, labels, params, mini_batch_size, criterion, device):
+def get_loss(model, inputs, labels, mini_batch_size, criterion, device):
     
     num_channels = inputs.size(-3)
 
     # prepare to size the size of the tensor
     inputs = inputs.view(inputs.size(0), num_channels, inputs.size(-2), inputs.size(-1))
     labels = labels.view(labels.size(0), num_channels, labels.size(-2), labels.size(-1))
-    params = params.view(params.size(0), 1, params.size(-2), params.size(-1))
 
     # obtain prediction
     n = 0
@@ -135,8 +130,7 @@ def get_loss(model, inputs, labels, params, mini_batch_size, criterion, device):
     for i in range(0, dataset, step):
         input = inputs[i:i+step, :, :, :]  # train_input.size --> (:, 1, 64, 64)
         label = labels[i:i+step, :, :, :]  # train_labels.size --> (:, 1, 64, 64)
-        param = params[i:i+step, :, :, :]
-        output = model(input, param)
+        output = model(input)
 
         # calculate test_loss
         loss += criterion(output, label).cpu().data.numpy()
@@ -149,6 +143,7 @@ def get_loss(model, inputs, labels, params, mini_batch_size, criterion, device):
     total_loss = np.round(float(total_loss), 5)
 
     return total_loss
+
 
 
 # ============================= CALCULATE MIN / SEC ===========================
@@ -186,14 +181,14 @@ def image_difference(test_label, test_output):
 
 
 # =========================== PRINT PROGRESS ==================================
-def epoch_progress(epoch, num_epoch, mini_batch_size, model, train_inputs, train_labels, train_params, test_inputs,
-                   test_labels, test_params, criterion, start_time, end_time, img_size, device):
+def epoch_progress(epoch, num_epoch, mini_batch_size, model, train_inputs, train_labels, test_inputs,
+                   test_labels, criterion, start_time, end_time, img_size, device):
 
     # obtain train_loss
-    train_loss_value = get_loss(model, train_inputs, train_labels, train_params, mini_batch_size, criterion, device)
-    
+    train_loss_value = get_loss(model, train_inputs, train_labels, mini_batch_size, criterion, device)
+
     # obtain test_loss
-    test_loss_value = get_loss(model, test_inputs, test_labels, test_params, mini_batch_size, criterion, device)
+    test_loss_value = get_loss(model, test_inputs, test_labels, mini_batch_size, criterion, device)
 
     # calculate time
     epoch_time_min, epoch_time_sec = calculate_time(start_time, end_time)
@@ -368,10 +363,10 @@ def save_net_information(stage, name, model, model_specification):
 # function that takes the files from pytorch that are difficult to obtain
 # e.g. model, and convert them into list."""
 
-def get_value(input):
+def get_value(data):
 
     with open('temp_file.txt', 'w') as f:
-        print(input, file=f)
+        print(data, file=f)
 
     file = open('temp_file.txt', "r")
     lines = list(file)
@@ -380,7 +375,6 @@ def get_value(input):
     os.remove('temp_file.txt')
 
     return lines
-
 
 
 # ======================= SAVE MATRIX =========================================
@@ -402,24 +396,15 @@ def save_data(data, name):
 # ========================= UPLOAD PLOTS ======================================
 def plot_output(stage, epochs, test_labels, test_outputs, img_size, report=False, saveJPG=False,
                 saveSVG=False, savePDF=False):
-    
-    # get important channel
-    if test_labels.size(-3) == 3:
-        test_labels = test_labels[:,0,:,:]
-        test_outputs = test_outputs[:,0,:,:]
-    elif test_labels.size(-3) == 1:
-        pass
-    else:
-        print('there is error in the number of channels')
-    
+
     output = test_labels.view(test_labels.size(0), test_labels.size(-2), test_labels.size(-1))
     pred_output = test_outputs.view(test_outputs.size(0), test_outputs.size(-2), test_outputs.size(-1))
 
     data_numbers = [1, 2, 3, 4, 5]
-
-    fig, ax = plt.subplots(figsize=(12,5), ncols=len(data_numbers), nrows=2)
     cmap = 'jet'
 #    https://matplotlib.org/examples/color/colormaps_reference.html
+
+    fig, ax = plt.subplots(figsize=(12,5), ncols=len(data_numbers), nrows=2)
 
     for i in range(len(data_numbers)):
 
@@ -429,24 +414,19 @@ def plot_output(stage, epochs, test_labels, test_outputs, img_size, report=False
         im = ax[0][i].imshow(temp_out.T, extent=(0, img_size, 0, img_size), cmap=cmap, origin='1')
         ax[0][i].set_axis_off()
         ax[0][i].set_title('output {}'.format(data_numbers[i]))
-#        plt.colorbar(im, ax=ax[0][i])
         divider = make_axes_locatable(ax[0][i])
         cax = divider.append_axes("right", size="5%", pad=0.05)
         plt.colorbar(im, cax=cax)
-
+        
         # predicted output
         pred_out = pred_output[data_numbers[i], :, :]
         temp_pred_out = (Variable(pred_out).data).cpu().numpy()
         im = ax[1][i].imshow(temp_pred_out.T, extent=(0, img_size, 0, img_size), cmap=cmap, origin='1')
         ax[1][i].set_axis_off()
         ax[1][i].set_title('predicted output {}'.format(data_numbers[i]))
-#        plt.colorbar(im, ax=ax[1][i])
         divider = make_axes_locatable(ax[1][i])
         cax = divider.append_axes("right", size="5%", pad=0.05)
         plt.colorbar(im, cax=cax)
-        
-        
-
 
     if report == True:
         w = int(25 / 2.5)  # 30
@@ -574,17 +554,6 @@ def max_stress(test_labels, test_outputs, img_size):
 def plot_max_stress(test_labels, test_outputs, stage, all_store_data,
                     criterion, report=False, saveJPG=False, saveSVG=False, savePDF=False):
     
-    # get important channel
-    if test_labels.size(-3) == 3:
-        test_labels = test_labels[:,0,:,:]
-        test_outputs = test_outputs[:,0,:,:]
-        test_labels = test_labels.view(test_labels.size(0), 1, test_labels.size(-2), test_labels.size(-1))
-        test_outputs = test_outputs.view(test_outputs.size(0), 1, test_outputs.size(-2), test_outputs.size(-1))
-    elif test_labels.size(-3) == 1:
-        pass
-    else:
-        print('there is error in the number of channels')
-    
 #    data_len = int(test_labels.size(0))
     data_len = 50
     
@@ -607,8 +576,6 @@ def plot_max_stress(test_labels, test_outputs, stage, all_store_data,
     wspace =  .3    # the amount of width reserved for blank space between subplots
     hspace =  .1     # the amount of height reserved for white space between subplots
 
-#    ax.plot(np.linspace(0,data_len-1, data_len), test_max_stress[:,0], color='#C6C6C6')
-#    ax.plot(np.linspace(0,data_len-1, data_len), test_max_stress[:,1], color='#C6C6C6')
     ax.vlines(x=np.linspace(0,data_len-1, data_len), ymin=0, ymax=test_max_stress[:,0], color='#C6C6C6')
     ax.scatter(np.linspace(0,data_len-1, data_len), test_max_stress[:,0], color='#2A6F92')
     ax.scatter(np.linspace(0,data_len-1, data_len), test_max_stress[:,1], color='#DA9124')
@@ -821,16 +788,6 @@ def draw_stress_propagation_plot(Labels, Outputs, stage, all_store_data,
                                  criterion, report=False, saveJPG=False,
                                  saveSVG=False, savePDF=False):
     
-    # get important channel
-    if Labels.size(-3) == 3:
-        Labels = Labels[:,0,:,:]
-        Outputs = Outputs[:,0,:,:]
-    elif Labels.size(-3) == 1:
-        pass
-    else:
-        print('there is error in the number of channels')
-        
-    # get the stress
     lab_prop = take_stress_values((Labels.data).cpu().numpy())
     out_prop = take_stress_values((Outputs.data).cpu().numpy())
     
@@ -859,14 +816,19 @@ def draw_stress_propagation_plot(Labels, Outputs, stage, all_store_data,
             lab_matrix = np.squeeze(lab_prop[index])
             out_matrix = np.squeeze(out_prop[index])
             ax[i][j].hold(True)
-            ax[i][j].plot(np.linspace(0,len(lab_matrix)-1, len(lab_matrix)), lab_matrix, color='#2A6F92')  #85D1F7
-            ax[i][j].plot(np.linspace(0,len(out_matrix)-1, len(out_matrix)), out_matrix, color='#DA9124')  #FDD9A2
+            ax[i][j].plot(np.linspace(0,len(lab_matrix)-1, len(lab_matrix)), lab_matrix, color='#2A6F92')
+            ax[i][j].plot(np.linspace(0,len(out_matrix)-1, len(out_matrix)), out_matrix, color='#DA9124')
             ax[i][j].set_xlabel('distance from node', **axis_font)
             ax[i][j].set_ylabel('stress [MPa]', **axis_font)
             ax[i][j].set_title('stress propagation {}'.format(index), **title_font)
             ax[i][j].legend(['output', 'Predicted output'], prop=font_prop, numpoints=1)
             ax[i][j].hold(False)
             index += 1
+
+#    # subplot 2
+#    ax[1].plot(all_store_data[:,0], all_store_data[:,1], color='#2A6F92', label='test loss')
+#    ax[1].set_xlabel('distance from node', **axis_font)
+#    ax[1].set_title('stress propagation (predicted output)', **title_font)
 
 
     if report == True:
@@ -911,6 +873,7 @@ def draw_stress_propagation_plot(Labels, Outputs, stage, all_store_data,
         fig.savefig('./RESULTS/' + short_title + ".svg")
     if savePDF == True:
         fig.savefig('./RESULTS/' + short_title + ".pdf")
+
 
 
 
@@ -987,9 +950,8 @@ def create_report(model, stage, model_specification):
 #    os.system('mv  -v ./RESULTS/_dirname/magick-*.pdf ./RESULTS/' + file_name + '.pdf')
 #    os.system('cd RESULTS && rmdir _dirname && cd .. && rm report_plot.png && rm report_output.png')
     
-   
-
-
+    
+    
 # ====================== CREATE REPORT - PAGE 2 ===============================
 def create_report_page2(model, stage, model_specification):
 
@@ -1074,6 +1036,7 @@ def plot_sample_param_and_label(params, labels):
     print(params[number,0,:,:])  
     
     
+
     
 # ================== CREATE CHANNEL X AND Y FOR INPUT IMAGES ==================
 def X_and_Y_channels(Inputs, Labels, img_size):
@@ -1198,7 +1161,7 @@ def mean_and_CI(Labels, Outputs, stage, all_store_data, criterion, report=False,
     if report == True:
         plt.subplots_adjust(wspace = wspace, bottom = bottom, hspace  =  hspace)
         w = int(14 / 2.5)  # 30
-        h = int(7.5 / 2.5)  # 10
+        h = int(8 / 2.5)  # 10
         fig.set_size_inches(w,h)
         fig.savefig('report_stresspropall.png', dpi=85)
 
@@ -1236,9 +1199,8 @@ def mean_and_CI(Labels, Outputs, stage, all_store_data, criterion, report=False,
         fig.savefig('./RESULTS/' + short_title + ".svg")
     if savePDF == True:
         fig.savefig('./RESULTS/' + short_title + ".pdf")
+        
 
-
-    
 # ================== SAVE BEST MODEL AND STATE_DICT ===========================
 def get_best_model(model, name, best_test_loss_value, test_loss_value):
     
@@ -1253,14 +1215,13 @@ def get_best_model(model, name, best_test_loss_value, test_loss_value):
 
 
 # =================== GET LOSS AND OUTPUT DATASET =============================
-def get_loss_and_output(model, inputs, labels, params, mini_batch_size, criterion, device):
+def get_loss_and_output(model, inputs, labels, mini_batch_size, criterion, device):
     
     num_channels = inputs.size(-3)
 
     # prepare to size the size of the tensor
     inputs = inputs.view(inputs.size(0), num_channels, inputs.size(-2), inputs.size(-1))
     labels = labels.view(labels.size(0), num_channels, labels.size(-2), labels.size(-1))
-    params = params.view(params.size(0), 1, params.size(-2), params.size(-1))
 
     # obtain prediction
     n = 0
@@ -1273,8 +1234,7 @@ def get_loss_and_output(model, inputs, labels, params, mini_batch_size, criterio
     for i in range(0, dataset, step):
         input = inputs[i:i+step, :, :, :]  # train_input.size --> (:, 1, 64, 64)
         label = labels[i:i+step, :, :, :]  # train_labels.size --> (:, 1, 64, 64)
-        param = params[i:i+step, :, :, :]
-        output = model(input, param)
+        output = model(input)
 
         # calculate test_loss
         loss += criterion(output, label).cpu().data.numpy()
@@ -1285,7 +1245,7 @@ def get_loss_and_output(model, inputs, labels, params, mini_batch_size, criterio
 #    total_loss = (loss / n) / dataset**2
     total_loss = loss / dataset**2
     total_loss = np.round(float(total_loss), 5)
-
+    
     outputs_torch = torch.from_numpy(outputs)
 
     return total_loss, outputs_torch

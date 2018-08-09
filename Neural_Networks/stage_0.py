@@ -11,7 +11,8 @@ import datetime
 from math import sqrt
 
 import GenerateDataFunctions as GDF
-import VisualizationFunction2 as VF
+import VisualizationFunction3 as VF
+import ModelStage_0 as M0
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -21,328 +22,161 @@ start_time = time.time()
 
 
 
+def network(args, model):
+    # ========================= PARAMETERS ========================================
+    stage = 'stage_0_0' + args.name
+    
+    Train = 1                                   # True if you want to train
+    
+    device_type = args.device_type              # cpu or cuda
+    device = torch.device(device_type)
+    
+    learning_rate = args.lr                     # 0.001
+    num_epoch = args.epochs                     # 1000
+    mini_batch_size = args.batch                # 50
+    momentum = args.momentum                    # 0.9
+    img_size = 64                               # 64
+    num_channels = 1                            # 1
+    
+    split = args.split                          # 6/10 for 5000 epochs
+    
+    validation_model = '.pt'                    # load mod
 
-for iteration in range(1):
 
-    if iteration == 0:
-        Inputs = np.load('./DATA/02_data_diffShape/Images_DataSet.npy')
-        Labels = np.load('./DATA/02_data_diffShape/Images_DataSet.npy')
-    else:
-        Inputs = np.load('./DATA/02_data_diffShape/Labels_DataSet.npy')
-        Labels = np.load('./DATA/02_data_diffShape/Labels_DataSet.npy')
-
-
-    for iteration_2 in range(5,6):
-
-
-        start_time = 0
-        start_time = time.time()
-
-        # -----------------------------------------------------------------------------
-        stage = 'Stage_0_' + str(iteration) + '_' + str(iteration_2)
-        print('/\/\/\/\/\/\/\/\/\/\/\ ' + stage + ' /\/\/\/\/\/\/\/\/\/\/\/')
+    # ==================== INPUT DATA =============================================
+    Labels = np.load('./DATA/05_noPressBEST/Labels_DataSet.npy')
+    Inputs = Labels
+    
+    # use part of the input data
+    Inputs = Inputs[:1000]
+    Labels = Labels[:1000]
+    
+    # check data
+    #VF.plot_sample_param_and_label(Inputs, Labels)
+    
+    # prepare data and split for training and testing
+    train_inputs, train_labels, test_inputs, test_labels = VF.load_data(Inputs, Labels, split, mini_batch_size, device, img_size)
+    print('PROGRESS: Data Prepared!')
 
 
-        # ========================= PARAMETERS ========================================
-        Train = 1
+    # calcualte time
+    start_time = 0
+    start_time = time.time()
+    
+    
+    # calling the model
+    net = model.to(device)    
+    
+    criterion = nn.MSELoss().to(device)
+    #        criterion = nn.BCELoss()
+    #        criterion = nn.PoissonNLLLoss()
+    optimizer = optim.Adam(params=net.parameters(), lr=learning_rate)
+    #        optimizer = optim.SGD(params=net.parameters(), lr=learning_rate, momentum=momentum)
+    
+    params = list(net.parameters())
+    
+    all_store_data = np.zeros((num_epoch, 3))
 
-        device_type = 'cuda'
-        learning_rate = 0.001
-        num_epoch = 200
-        mini_batch_size = 100
-        momentum = 0.9
-        img_size = 64
-        num_channels = 1
 
-        split = 7/8
+
+    # ============================== TRAINING =====================================
+    if Train == True:
         
-        validation_model = '.pt'
+        for epoch in range(num_epoch):
 
-        # ==================== INPUT DATA =============================================
-        device = torch.device(device_type)  # cpu or cuda
+            for i in range(0, train_inputs.size(0), mini_batch_size):
 
-        Inputs = Inputs[:8000]
-        Labels = Labels[:8000]
-        train_inputs, train_labels, test_inputs, test_labels = VF.load_data(Inputs, Labels, split, mini_batch_size, device, img_size)
+                # training data
+                train_input = train_inputs[i:i+mini_batch_size, :, :, :]  # (:, 1, 5, 6)
+                train_label = train_labels[i:i+mini_batch_size, :, :, :]  # (:, 1, 64, 64)
+    
+                # forward path
+                train_out = net(train_input)
+    
+                loss = criterion(train_out, train_label)
+                loss.backward()
+                optimizer.step()
+    
+                net.zero_grad()
+    
+    
+            end_time = time.time()
+    
+            # get training data
+            epoch_data, train_outputs, test_outputs = VF.epoch_progress(epoch, num_epoch, mini_batch_size, net, train_inputs, train_labels,
+                                                                        test_inputs, test_labels, criterion, start_time,
+                                                                        end_time, img_size, device)
 
-
-        # ====================== NEURAL NETWORK CONFIGURATION =========================
-        # =================================================================================
-        # =================================================================================
-
-        if iteration_2 == 0:
-            class Net(nn.Module):
-                def __init__(self):
-                    super().__init__()
-                    self.h1 = nn.Linear(64*64, 300)
-                    self.h2 = nn.Linear(300, 30)
-                    self.h3 = nn.Linear(30, 300)
-                    self.h4 = nn.Linear(300, 64*64)
-
-                def forward(self, x):
-                    x = x.view(x.size(0), 64*64)
-                    x = F.relu(self.h1(x))
-                    x = F.relu(self.h2(x))
-                    x = F.relu(self.h3(x))
-                    x = F.relu(self.h4(x))
-                    return x
-
-
-        elif iteration_2 == 1:
-            class Net(nn.Module):
-                def __init__(self):
-                    super(Net, self).__init__()
-                    self.encoder = nn.Sequential(
-                        nn.Linear(64*64, 200),
-                        nn.ReLU(),
-                        nn.Dropout(),
-                        nn.Linear(200, 40),
-                        nn.ReLU())
-                    self.decoder = nn.Sequential(
-                        nn.Linear(40,200),
-                        nn.ReLU(),
-                        nn.Dropout(),
-                        nn.Linear(200, 64*64),
-                        nn.RReLU(0, 1))
-
-                def forward(self, x):
-                    x = x.view(x.size(0), 64*64)
-                    x = self.encoder(x)
-                    x = self.decoder(x)
-                    return x
-
-
-        elif iteration_2 == 2:
-            class Net(nn.Module):
-                def __init__(self):
-                    super(Net, self).__init__()
-                    self.encoder = nn.Sequential(
-                        nn.Conv2d(1, 6, kernel_size=6, stride=2, padding=0),
-                        nn.ReLU(True),
-                        nn.Conv2d(6, 16, kernel_size=6, stride=2, padding=0),
-                        nn.ReLU(True),  # output: 1, 16, 13, 13
-                        )
-                    self.decoder = nn.Sequential(
-                        nn.ConvTranspose2d(16, 6, 6, stride=2),
-                        nn.ReLU(True),
-                        nn.ConvTranspose2d(6, 1, 6, stride=2),
-                        nn.RReLU(0, 1)
-                        )
-
-                def forward(self, x):
-                    x = self.encoder(x)
-                    x = self.decoder(x)
-                    return x
-
-
-        elif iteration_2 == 3:
-            class Net(nn.Module):
-                def __init__(self):
-                    super(Net, self).__init__()
-                    self.encoder = nn.Sequential(
-                        nn.Conv2d(1, 6, kernel_size=6, stride=2, padding=0),
-                        nn.ReLU(True),
-                        nn.MaxPool2d(kernel_size=3, stride=1),
-                        nn.Conv2d(6, 16, kernel_size=6, stride=2, padding=0),
-                        nn.ReLU(True),
-                        nn.MaxPool2d(kernel_size=3, stride=1))  # output: 1, 16, 10, 10
-                    self.decoder = nn.Sequential(
-                        nn.ConvTranspose2d(16, 10, 6, stride=2),
-                        nn.ReLU(True),
-                        nn.ConvTranspose2d(10, 6, 6, stride=2),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(6, 3, 6, stride=1),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(3, 1, 8, stride=1),
-                        nn.Sigmoid())
-
-                def forward(self, x):
-                    x = self.encoder(x)
-                    x = self.decoder(x.view(x.size(0), 16, 10, 10))
-                    return x
-
-
-        elif iteration_2 == 4:
-            class Net(nn.Module):
-                def __init__(self):
-                    super(Net, self).__init__()
-                    self.encoder1 = nn.Sequential(
-                        nn.Conv2d(1, 6, kernel_size=6, stride=2, padding=0),
-                        nn.ReLU(True),
-                        nn.Conv2d(6, 16, kernel_size=6, stride=2, padding=0),
-                        nn.ReLU(True))  # output: 1, 16, 13, 13
-                    self.encoder2 = nn.Sequential(
-                        nn.Linear(16 * 13 * 13, 120),
-                        nn.ReLU(),
-                        nn.Dropout(),
-                        nn.Linear(120, 40),
-                        nn.ReLU())
-                    self.decoder1 = nn.Sequential(
-                        nn.Linear(40, 120),
-                        nn.ReLU(),
-                        nn.Dropout(),
-                        nn.Linear(120, 16 * 13 * 13),
-                        nn.ReLU())
-                    self.decoder2 = nn.Sequential(
-                        nn.ConvTranspose2d(16, 6, 6, stride=2),
-                        nn.ReLU(True),
-                        nn.ConvTranspose2d(6, 1, 6, stride=2),
-                        nn.Sigmoid())    
-                    
-                def forward(self, x):
-                    x = self.encoder1(x)
-                    x = self.encoder2(x.view(x.size(0), 16 * 13 * 13))
-                    x = self.decoder1(x)
-                    x = self.decoder2(x.view(x.size(0), 16, 13, 13))
-                    return x
-
-
-        elif iteration_2 == 5:
-            class Net(nn.Module):
-                def __init__(self):
-                    super(Net, self).__init__()
-                    self.encoder1 = nn.Sequential(
-                        nn.Conv2d(1, 6, kernel_size=6, stride=2, padding=0),
-                        nn.ReLU(True),
-                        nn.MaxPool2d(kernel_size=3, stride=1),
-                        nn.Conv2d(6, 16, kernel_size=6, stride=2, padding=0),
-                        nn.ReLU(True),
-                        nn.MaxPool2d(kernel_size=3, stride=1))  # output: 1, 16, 10, 10
-                    self.encoder2 = nn.Sequential(
-                        nn.Linear(16 * 10 * 10, 500),
-                        nn.ReLU(),
-                        nn.Dropout(),
-                        nn.Linear(500, 40),
-                        nn.ReLU())
-                    self.decoder1 = nn.Sequential(
-                        nn.Linear(40, 500),
-                        nn.ReLU(),
-                        nn.Dropout(),
-                        nn.Linear(500, 16 * 10 * 10),
-                        nn.ReLU())
-                    self.decoder2 = nn.Sequential(
-                        nn.ConvTranspose2d(16, 10, 6, stride=2),
-                        nn.ReLU(True),
-                        nn.ConvTranspose2d(10, 6, 6, stride=2),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(6, 3, 6, stride=1),
-                        nn.ReLU(),
-                        nn.ConvTranspose2d(3, 1, 8, stride=1),
-                        nn.Sigmoid())   
-                    
-                def forward(self, x):
-                    x = self.encoder1(x)
-                    x = self.encoder2(x.view(x.size(0), 16 * 10 * 10))
-                    x = self.decoder1(x)
-                    x = self.decoder2(x.view(x.size(0), 16, 10, 10))
-                    return x
-
-
-        else:
-            print("WRONG MODEL!")
-
-
-        # =================================================================================
-        # =================================================================================
-        # =================================================================================
-
-
-
-        # calling the model
-        net = Net().to(device)
-
-        criterion = nn.MSELoss()
-        optimizer = optim.Adam(params=net.parameters(), lr=learning_rate)
-
-        params = list(net.parameters())
-        loss_sum = 0
-        best_test_value = 0
-
-        train_test_loss = np.zeros((num_epoch, 2))
-        all_store_data = np.zeros((num_epoch, 3))
-
-        # ============================== TRAINING =====================================
-        if Train == True:
-            # Learning process
-            for epoch in range(num_epoch):
-
-                running_loss = 0.0
-
-                for i in range(0, train_inputs.size(0), mini_batch_size):
-
-                    # -------------------- TRAIN DATA ---------------------------------
-                    train_input = train_inputs[i:i+mini_batch_size, :, :, :]  # train_input.size --> (:, 1, 64, 64)
-                    train_label = train_labels[i:i+mini_batch_size, :, :, :]  # train_labels.size --> (:, 1, 64, 64)
-
-                    # forward path
-                    train_out = net(train_input)
-                    train_out = train_out.view(train_out.size(0), num_channels, img_size, img_size)
-
-                    loss = criterion(train_out, train_label)
-                    loss.backward()
-                    optimizer.step()
-                    running_loss += loss.data[0]
-                    loss_sum += loss.data[0]
-
-                    net.zero_grad()
-
-
-
-
-                end_time = time.time()
-
-                epoch_data, train_outputs, test_outputs = VF.epoch_progress(epoch, num_epoch, mini_batch_size, net, train_inputs, train_labels,
-                                                                            test_inputs, test_labels, criterion, start_time,
-                                                                            end_time, img_size, device)
-
-                all_store_data[epoch, :] = epoch_data
-
-            final_time = time.time()
-
-            # plot results
-            VF.result_plot('loss_' + stage, all_store_data, criterion, True, saveSVG=True)
-            VF.plot_output('out_' + stage, num_epoch, test_labels, test_outputs, img_size, True, saveSVG=True)
-
-            # save model and state_dict
-            VF.save_model(net, 'Autoencoder_' + str(iteration_2))
-
-            # obtain image difference
-            img_diff = VF.image_difference(test_labels, test_outputs)
-
-            time.sleep(5)
-
-            # save all parameters
-            model_specification = VF.net_specification(stage, train_input.size(0),
-                                                       str(train_inputs.size(2)) +' x ' + str(train_inputs.size(3)),
-                                                       str(test_inputs.size(2)) +' x ' + str(test_inputs.size(3)),
-                                                       num_epoch, mini_batch_size, learning_rate, momentum, criterion,
-                                                       optimizer, str(train_inputs.size(0)*train_inputs.size(1)) + ' / ' + str(test_inputs.size(0)*test_inputs.size(1)),
-                                                       device_type, np.min(all_store_data[:,1]), np.max(all_store_data[:,1]),
-                                                       np.min(all_store_data[:,2]), np.max(all_store_data[:,2]),
-                                                       sqrt(all_store_data[num_epoch-1, 1]),
-                                                       sqrt(all_store_data[num_epoch-1, 2]),
-                                                       [start_time, final_time],
-                                                       sqrt(all_store_data[num_epoch-1, 2]), img_diff)
-
-            time.sleep(5)
-            # create report
-            VF.create_report(net, stage, model_specification)
-
-
-        # ============================== TESTING ======================================
-        else:
-
-            # read model
-            val_net = torch.load('./RESULTS/' + validataion_model)
-            test_output = val_net(test_inputs)
-
-
-            VF.plot_output(stage, num_epoch, test_labels, test_output, img_size, saveSVG=True)
-
-
+            # store all training data
+            all_store_data[epoch, :] = epoch_data
+    
+        
+        # stop training time
+        final_time = time.time()
+        print('PROGRESS: Training Done!')
+        
+        # save output
+        VF.save_data(train_outputs, 'train_outputs')
+        VF.save_data(test_outputs, 'test_outputs')
+    
+        # plot results
+        VF.result_plot(stage, all_store_data, criterion, True, saveSVG=True)
+        VF.plot_output(stage, num_epoch, test_labels, test_outputs, img_size, True, saveSVG=True)
+        VF.plot_max_stress(test_labels, test_outputs, stage, all_store_data, criterion, True, saveSVG=True)
+        VF.draw_stress_propagation_plot(test_labels[0:4], test_outputs[0:4], stage, all_store_data, criterion, True, saveSVG=True)
+                                        
+        # save model and state_dict
+        VF.save_model(net, stage)
+    
+        # obtain image difference
+        img_diff = VF.image_difference(test_labels, test_outputs)
+    
         time.sleep(5)
-        os.rename('RESULTS', 'RESULTS_' + str(iteration) + '_' + str(iteration_2))
-        time.sleep(5)
-
-        # clear Variable explorer in Spyder
-#        def __reset__(): get_ipython().magic('reset -sf')
+    
+        # save all parameters
+        model_specification = VF.net_specification(stage, train_input.size(0),
+                                                   str(train_inputs.size(2)) +' x ' + str(train_inputs.size(3)),
+                                                   str(train_labels.size(2)) +' x ' + str(train_labels.size(3)),
+                                                   num_epoch, mini_batch_size, learning_rate, momentum, criterion,
+                                                   optimizer, str(train_inputs.size(0)*train_inputs.size(1)) + ' / ' + str(test_inputs.size(0)*test_inputs.size(1)),
+                                                   device_type, np.min(all_store_data[:,1]), np.max(all_store_data[:,1]),
+                                                   np.min(all_store_data[:,2]), np.max(all_store_data[:,2]),
+                                                   sqrt(all_store_data[num_epoch-1, 1]),
+                                                   sqrt(all_store_data[num_epoch-1, 2]),
+                                                   [start_time, final_time],
+                                                   sqrt(all_store_data[num_epoch-1, 2]), img_diff)
+        
+        print('PROGRESS: Data Saved!')
+        time.sleep(2)
+    
+        # create report
+        VF.create_report(net, stage, model_specification)
+        VF.create_report_page2(net, stage, model_specification)
+        print('PROGRESS: Report Created!')
+    
+    
+    
+    # ============================== TESTING ======================================
+    else:
+    
+        # read model
+        val_net = torch.load(validataion_model)
+        test_output = val_net(test_inputs)
+        print('PROGRESS: Validation Done!')
+    
+        VF.plot_output(stage, num_epoch, test_labels, test_output, img_size, saveSVG=True)
+        print('PROGRESS: DONE!')
+    
+    
+    # rename folder
+    time.sleep(2)
+    time_data = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
+    os.rename('RESULTS', 'RESULTS_' + stage + time_data)
+    
+    time.sleep(1)
+    print('PROGRESS: DONE!')
+    
+    os.remove('report_plot.png')
+    os.remove('report_output.png')
+    os.remove('report_maxstress.png')
+    os.remove('report_stressprop.png')
