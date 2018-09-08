@@ -32,6 +32,8 @@ def network(args, model):
     device_type = args.device_type              # cpu or cuda
     device = torch.device(device_type)
     
+    dataset = args.dataset
+    
     learning_rate = args.lr                     # 0.001
     num_epoch = args.epochs                     # 1000
     mini_batch_size = args.batch                # 50
@@ -45,21 +47,13 @@ def network(args, model):
     validation_model_state_dict = '.pt'             # load model state_dict
     
     
-    # =========================== PREPARE DATA ====================================
-    
-    #number_of_elements = 10000
-    #points_and_fix = GDF.automate_get_params(number_of_elements)
-    #
-    #input_data = torch.zeros((number_of_elements, 5, 6))
-    #input_data = input_data.float()
-    #for i in range(number_of_elements):
-    #    input_data[i] = torch.from_numpy(points_and_fix[i])
     
     
     # ==================== INPUT DATA =============================================
-    Inputs = torch.from_numpy(np.load('./DATA/05_noPressBEST/Params_DataSet.npy'))
+    Inputs = torch.from_numpy(np.load('./DATA/' + dataset + '/Params_DataSet.npy'))
     Inputs = Inputs.view(Inputs.size(0), 1, 1, 5, 6)
-    Labels = np.load('./DATA/05_noPressBEST/Labels_DataSet.npy')
+    Inputs[:, :, :, :, 4:6] = Inputs[:, :, :, :, 4:6] / 10
+    Labels = np.load('./DATA/' + dataset + '/Labels_DataSet.npy')
     
     # use part of the input data
 #    Inputs = Inputs[:1000]
@@ -90,6 +84,8 @@ def network(args, model):
     
     all_store_data = np.zeros((num_epoch, 3))
     best_test_loss_value = 10000
+    smallest_test_loss = 1000
+    n = 0
     
     # ============================== TRAINING =====================================
     if Train == True:
@@ -127,7 +123,17 @@ def network(args, model):
 
             # save best model
             best_test_loss_value = VF.get_best_model(net, stage, best_test_loss_value, all_store_data[epoch, 2])
+            
+            # early stoping
+            smallest_test_loss, n = VF.early_stop(epoch, epoch_data[0,2], smallest_test_loss, n)
+            
+            if n == 50:
+                num_epoch = epoch + 1
+                break
+            
         
+        # save all_store_data
+        VF.save_data(all_store_data, 'all_store_data_' + stage)
 
         # stop training time
         final_time = time.time()
@@ -147,6 +153,7 @@ def network(args, model):
     
         # plot results
         VF.result_plot(stage, all_store_data, criterion, True, saveSVG=True)
+        VF.plot_output('input' + stage, num_epoch, train_labels, train_outputs, img_size, False, saveSVG=True)
         VF.plot_output(stage, num_epoch, test_labels, test_outputs, img_size, True, saveSVG=True)
         VF.plot_max_stress(test_labels, test_outputs, stage, all_store_data, criterion, True, saveSVG=True)
         VF.draw_stress_propagation_plot(test_labels[0:4], test_outputs[0:4], stage, all_store_data, criterion, True, saveSVG=True)
@@ -157,21 +164,25 @@ def network(args, model):
     
         # obtain image difference
         img_diff = VF.image_difference(test_labels, test_outputs)
+        
+        # calculate max stress error
+        overall_max_stress_error = VF.avg_max_stress_error(test_labels, test_outputs, img_size)
     
-        time.sleep(5)
+        time.sleep(2)
     
         # save all parameters
         model_specification = VF.net_specification(stage, str(train_inputs.size(0) + test_inputs.size(0)),
                                                    str(train_inputs.size(2)) +' x ' + str(train_inputs.size(3)),
                                                    str(train_labels.size(2)) +' x ' + str(train_labels.size(3)),
-                                                   num_epoch, mini_batch_size, learning_rate, momentum, criterion,
-                                                   optimizer, str(train_inputs.size(0)*train_inputs.size(1)) + ' / ' + str(test_inputs.size(0)*test_inputs.size(1)),
+                                                   num_epoch, mini_batch_size, learning_rate, momentum, str(criterion),
+                                                   optimizer, str(train_inputs.size(0)) + ' / ' + str(test_inputs.size(0)),
                                                    device_type, np.min(all_store_data[:,1]), np.max(all_store_data[:,1]),
                                                    np.min(all_store_data[:,2]), np.max(all_store_data[:,2]),
                                                    train_total_loss,
                                                    test_total_loss,
                                                    [start_time, final_time],
-                                                   sqrt(all_store_data[num_epoch-1, 2]), img_diff)
+                                                   sqrt(all_store_data[num_epoch-1, 2]), img_diff, dataset,
+                                                   overall_max_stress_error)
         
         print('PROGRESS: Data Saved!')
         time.sleep(2)

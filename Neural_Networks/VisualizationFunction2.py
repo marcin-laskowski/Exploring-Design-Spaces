@@ -14,6 +14,7 @@ plot_output - plot output images
 net_specification - create dict with model sepcification
 save_model - save model and state_dict of the network
 max_stress - get maximum stress of each picture in test_labels and test_outputs
+avg_max_stress_error - calculates average maximum stress error
 plot_max_stress - plot difference between test_labels and test_outputs of the max stress
 take_stress_values - get stress propagation of the node with maximum stress
 draw_stress_propagation_plot - creates fours plots with differenece of the stress propagation between test_labels and test_outputs
@@ -24,6 +25,7 @@ X_and_Y_channels - creates X and Y channels for the input image
 mean_and_CI - creates plot with mean and standard deviation of the stress propagation
 get_best_model - compare loss and save model for smallest loss value
 get_loss_and_output - calculate loss and return outputs data
+combine_fix_and_force - combine fixation matrix with force matrix
 """
 
 import os
@@ -59,6 +61,7 @@ def load_data(Inputs, Labels, split, batch_size, device, img_size):
         pass
     else:
         Inputs = torch.from_numpy(Inputs)
+    
     if type(Labels) == torch.Tensor:
         pass
     else:
@@ -117,11 +120,9 @@ def load_params(Params, split, batch_size, device, img_size):
 # ============================ GET LOSS ======================================
 def get_loss(model, inputs, labels, params, mini_batch_size, criterion, device):
     
-    num_channels = inputs.size(-3)
-
     # prepare to size the size of the tensor
-    inputs = inputs.view(inputs.size(0), num_channels, inputs.size(-2), inputs.size(-1))
-    labels = labels.view(labels.size(0), num_channels, labels.size(-2), labels.size(-1))
+    inputs = inputs.view(inputs.size(0), inputs.size(-3), inputs.size(-2), inputs.size(-1))
+    labels = labels.view(labels.size(0), labels.size(-3), labels.size(-2), labels.size(-1))
     params = params.view(params.size(0), 1, params.size(-2), params.size(-1))
 
     # obtain prediction
@@ -217,7 +218,7 @@ def epoch_progress(epoch, num_epoch, mini_batch_size, model, train_inputs, train
 # =========================== PLOT ACCURACY ===================================
 def result_plot(stage, all_store_data, criterion, report=False, saveJPG=False,
                 saveSVG=False, savePDF=False):
-
+    
 
     # font definition
     title_font = {'fontname':'Arial', 'size':'16', 'color':'black', 'weight':'normal',
@@ -301,8 +302,8 @@ def result_plot(stage, all_store_data, criterion, report=False, saveJPG=False,
 # =========================== SAVE AS .MAT ====================================
 def save_as_mat(name, input_array, stage, num_epoch):
 
-    time_data = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
-    short_title = "{}_{}_{}".format(stage, num_epoch, time_data)
+#    time_data = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
+    short_title = "{}".format(stage)
 
     # create empty folder
     if not os.path.exists('./RESULTS'):
@@ -437,6 +438,7 @@ def plot_output(stage, epochs, test_labels, test_outputs, img_size, report=False
         # predicted output
         pred_out = pred_output[data_numbers[i], :, :]
         temp_pred_out = (Variable(pred_out).data).cpu().numpy()
+#        im = ax[1][i].imshow(temp_pred_out.T, extent=(0, img_size, 0, img_size), cmap=cmap, origin='1', vmin=0, vmax=out.max())
         im = ax[1][i].imshow(temp_pred_out.T, extent=(0, img_size, 0, img_size), cmap=cmap, origin='1')
         ax[1][i].set_axis_off()
         ax[1][i].set_title('predicted output {}'.format(data_numbers[i]))
@@ -446,8 +448,6 @@ def plot_output(stage, epochs, test_labels, test_outputs, img_size, report=False
         plt.colorbar(im, cax=cax)
         
         
-
-
     if report == True:
         w = int(25 / 2.5)  # 30
         h = int(11 / 2.5)  # 10
@@ -492,7 +492,8 @@ def net_specification(stage, dataset_size, input_size, output_size, epochs,
                       mini_batch_size, learning_rate, momentum, loss_function,
                       optimizer, train_test_split, device, min_train_loss,
                       max_train_loss, min_test_loss, max_test_loss, train_total_loss,
-                      test_total_loss, overall_run_time, accuracy, img_diff):
+                      test_total_loss, overall_run_time, accuracy, img_diff, dataset,
+                      overall_max_stress_error):
 
     # get optimizer
     optimizer_type = str(type(optimizer))
@@ -527,7 +528,9 @@ def net_specification(stage, dataset_size, input_size, output_size, epochs,
                                test_total_loss = test_total_loss,
                                overall_run_time = all_time,
                                accuracy = accuracy,
-                               img_diff = img_diff)
+                               img_diff = img_diff,
+                               dataset = dataset,
+                               overall_max_stress_error = overall_max_stress_error)
 
     # save as .mat file
     if not os.path.exists('./RESULTS'):
@@ -568,6 +571,38 @@ def max_stress(test_labels, test_outputs, img_size):
         
     return test_max_stress
 
+
+
+
+# ==================== AVERAGE MAX STRESS ERROR ===============================
+def avg_max_stress_error(test_labels, test_outputs, img_size):
+    
+    # get important channel
+    if test_labels.size(-3) == 3:
+        test_labels = test_labels[:,0,:,:]
+        test_outputs = test_outputs[:,0,:,:]
+        test_labels = test_labels.view(test_labels.size(0), 1, test_labels.size(-2), test_labels.size(-1))
+        test_outputs = test_outputs.view(test_outputs.size(0), 1, test_outputs.size(-2), test_outputs.size(-1))
+    elif test_labels.size(-3) == 1:
+        pass
+    else:
+        print('there is error in the number of channels')
+    
+#    data_len = int(test_labels.size(0))
+    data_len = test_labels.size(0)
+    
+    # get max values of stress
+    test_max_stress = max_stress(test_labels[:data_len], test_outputs[:data_len], test_labels.size(-1))
+    
+    # calcualte difference 
+    diff_max_stress = np.absolute(test_max_stress[:, 0] - test_max_stress[:, 1])
+    
+    # calculate overall maximum stress error
+    overall_max_stress_error = np.sum(diff_max_stress) / len(diff_max_stress)
+    overall_max_stress_error = np.round(float(overall_max_stress_error), 5)
+    
+    return overall_max_stress_error
+
     
 
 # ==================== CREATE PLOT FOR MAX STRESS =============================
@@ -586,10 +621,13 @@ def plot_max_stress(test_labels, test_outputs, stage, all_store_data,
         print('there is error in the number of channels')
     
 #    data_len = int(test_labels.size(0))
-    data_len = 50
+    data_len = test_labels.size(0)
     
     # get max values of stress
     test_max_stress = max_stress(test_labels[:data_len], test_outputs[:data_len], test_labels.size(-1))
+    
+    # save max_stress_error
+    save_data(test_max_stress, 'test_max_stress_' + stage)
 
     # font definition
     title_font = {'fontname':'Arial', 'size':'16', 'color':'black', 'weight':'normal',
@@ -609,13 +647,18 @@ def plot_max_stress(test_labels, test_outputs, stage, all_store_data,
 
 #    ax.plot(np.linspace(0,data_len-1, data_len), test_max_stress[:,0], color='#C6C6C6')
 #    ax.plot(np.linspace(0,data_len-1, data_len), test_max_stress[:,1], color='#C6C6C6')
-    ax.vlines(x=np.linspace(0,data_len-1, data_len), ymin=0, ymax=test_max_stress[:,0], color='#C6C6C6')
-    ax.scatter(np.linspace(0,data_len-1, data_len), test_max_stress[:,0], color='#2A6F92')
-    ax.scatter(np.linspace(0,data_len-1, data_len), test_max_stress[:,1], color='#DA9124')
-    ax.set_xlabel('number of test data', **axis_font)
-    ax.set_ylabel('max stress value [MPa]', **axis_font)
+#    ax.vlines(x=np.linspace(0,data_len-1, data_len), ymin=0, ymax=test_max_stress[:,0], color='#C6C6C6')
+#    ax.scatter(np.linspace(0,data_len-1, data_len), test_max_stress[:,0], color='#2A6F92')
+#    ax.scatter(np.linspace(0,data_len-1, data_len), test_max_stress[:,1], color='#DA9124')
+#    ax.set_xlabel('number of test data', **axis_font)
+#    ax.set_ylabel('max stress value [MPa]', **axis_font)
+#    ax.set_title('max stress {} values for output and predicted output'.format(data_len), **title_font)
+#    ax.legend(['outputs', 'predicted outputs'], prop=font_prop, numpoints=1)
+#    ax.hold(False)
+    ax.scatter(test_max_stress[:,0], test_max_stress[:,1], color='#2A6F92')
+    ax.set_xlabel('output max stress [MPa]', **axis_font)
+    ax.set_ylabel('predicited max stress [MPa]', **axis_font)
     ax.set_title('max stress {} values for output and predicted output'.format(data_len), **title_font)
-    ax.legend(['outputs', 'predicted outputs'], prop=font_prop, numpoints=1)
     ax.hold(False)
 
     if report == True:
@@ -627,26 +670,25 @@ def plot_max_stress(test_labels, test_outputs, stage, all_store_data,
 
 
     # adjust image
-    w = int(30 / 2.5)  # 30
+    w = int(11 / 2.5)  # 30
     h = int(11 / 2.5)  # 10
     fig.set_size_inches(w,h)
 
-    font_prop = font_manager.FontProperties(size=12)
-    ax.legend(['outputs', 'predicted outputs'], prop=font_prop, numpoints=1)
+#    font_prop = font_manager.FontProperties(size=12)
+#    ax.legend(['outputs', 'predicted outputs'], prop=font_prop, numpoints=1)
 
     top    =  0.8
     plt.subplots_adjust(top = top, hspace = hspace)
 
 
-
     # define title
-    plot_title = "Max stress of {} | epochs: {} | {}".format(stage, len(all_store_data), criterion)
+    plot_title = "Max stress estimation"
     fig.suptitle(plot_title, fontsize=16)
-
+    ax.set_title(stage)
 
     # -------------------- save the plot ------------------------
     time_data = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
-    short_title = "maxstress_{}_{}_{}".format(stage, len(all_store_data), time_data)
+    short_title = "maxstress_{}_{}".format(stage, len(all_store_data))
 
 
     # create empty folder
@@ -834,6 +876,7 @@ def draw_stress_propagation_plot(Labels, Outputs, stage, all_store_data,
     lab_prop = take_stress_values((Labels.data).cpu().numpy())
     out_prop = take_stress_values((Outputs.data).cpu().numpy())
     
+    
     ncols = 2
     nrows = 2
     
@@ -940,6 +983,9 @@ def create_report(model, stage, model_specification):
 
     # upload stage
     ws['D3'] = str(stage)
+    
+    # dataset
+    ws['D4'] = str(model_specification['dataset'])
 
     # upload save specification
     ws['J8'] = str(model_specification['dataset_size'])
@@ -1008,6 +1054,9 @@ def create_report_page2(model, stage, model_specification):
     # upload stage
     ws['D3'] = str(stage)
 
+    # dataset
+    ws['D4'] = str(model_specification['dataset'])
+    
     # upload save specification
 #    ws['J8'] = str(model_specification['dataset_size'])
 #    ws['J9'] = str(model_specification['input_size'])
@@ -1018,6 +1067,7 @@ def create_report_page2(model, stage, model_specification):
     ws['N11'] = str(model_specification['max_test_loss'])
     ws['N12'] = str(model_specification['train_total_loss'])
     ws['N13'] = str(model_specification['test_total_loss'])
+    ws['N14'] = str(model_specification['overall_max_stress_error'])
     
     ws['N17'] = str(model_specification['overall_run_time'])
     ws['N18'] = str(model_specification['img_diff'])
@@ -1255,11 +1305,9 @@ def get_best_model(model, name, best_test_loss_value, test_loss_value):
 # =================== GET LOSS AND OUTPUT DATASET =============================
 def get_loss_and_output(model, inputs, labels, params, mini_batch_size, criterion, device):
     
-    num_channels = inputs.size(-3)
-
     # prepare to size the size of the tensor
-    inputs = inputs.view(inputs.size(0), num_channels, inputs.size(-2), inputs.size(-1))
-    labels = labels.view(labels.size(0), num_channels, labels.size(-2), labels.size(-1))
+    inputs = inputs.view(inputs.size(0), inputs.size(-3), inputs.size(-2), inputs.size(-1))
+    labels = labels.view(labels.size(0), labels.size(-3), labels.size(-2), labels.size(-1))
     params = params.view(params.size(0), 1, params.size(-2), params.size(-1))
 
     # obtain prediction
@@ -1289,3 +1337,44 @@ def get_loss_and_output(model, inputs, labels, params, mini_batch_size, criterio
     outputs_torch = torch.from_numpy(outputs)
 
     return total_loss, outputs_torch
+
+
+
+# ======================== COMBINE FIXATION AND FORCE =========================
+def combine_fix_and_force(Params):
+    
+    if type(Params) == torch.Tensor:
+        Params_size = Params.size(-1)
+    else:
+        Params_size = np.shape(Params)[-1]
+    
+    if Params_size == 6:
+        tempParams = Params
+        tempParams[:,:,2] += tempParams[:,:,4]
+        tempParams[:,:,3] += tempParams[:,:,5]
+        NewParams = tempParams[:,:,0:4]
+    elif Params_size == 4:
+        tempParams = Params
+        tempParams[:,:,0] += tempParams[:,:,2]
+        tempParams[:,:,1] += tempParams[:,:,3]
+        NewParams = tempParams[:,:,0:2]
+    else:
+        print('please check the function, becuase size do not match')
+        
+    return NewParams
+
+
+# ==================== EARLY STOPPING =========================================
+def early_stop(epoch, test_loss, smallest_test_loss, n):
+    
+    if epoch != 0:
+        smallest_test_loss = 10000
+        n = 0
+    else: 
+        if test_loss < smallest_test_loss:
+            smallest_test_loss = test_loss
+            n = 0
+        else:
+            n += 1
+    
+    return smallest_test_loss, n

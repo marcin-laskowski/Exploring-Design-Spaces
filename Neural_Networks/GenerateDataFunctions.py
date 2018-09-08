@@ -384,8 +384,8 @@ def automate_get_params(number_of_elements):
 
         # read the file from the folder
 #        pentagon_name = './input_params/InputParams{}.txt'.format(item)
-#        pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
-        pentagon_name = './DATA/01_data_noPress/input_params/InputParams{}.txt'.format(item)
+        pentagon_name = './DATA/13_MediumShape/input_params/InputParams{}.txt'.format(item)
+#        pentagon_name = './DATA/08_noPressNewShape2/input_params/InputParams{}.txt'.format(item)
 #        pentagon_name = './DATA/03_data_new/input_params/InputParams{}.txt'.format(item)
 
         # get the pentagon parameters
@@ -451,8 +451,8 @@ def automate_get_fix_and_force(number_of_elements):
 
         # read the file from the folder
 #        pentagon_name = './input_params/InputParams{}.txt'.format(item)
-#        pentagon_name = './DATA/02_data_diffShape/input_params/InputParams{}.txt'.format(item)
-        pentagon_name = './DATA/01_data_noPress/input_params/InputParams{}.txt'.format(item)
+        pentagon_name = './DATA/13_MediumShape/input_params/InputParams{}.txt'.format(item)
+#        pentagon_name = './DATA/08_noPressNewShape2/input_params/InputParams{}.txt'.format(item)
 #        pentagon_name = './DATA/03_data_new/input_params/InputParams{}.txt'.format(item)
 
 

@@ -120,14 +120,21 @@ class ConvLinConv_0(nn.Module):
         super(ConvLinConv_0, self).__init__()
         self.encoder = nn.Sequential(
             nn.Conv2d(1,6,3,1,1),
-            nn.MaxPool2d(4,4),
+            nn.BatchNorm2d(6),
             nn.ReLU(),
+            nn.MaxPool2d(4,4),
             nn.Conv2d(6,12,3,1,1),
-            nn.MaxPool2d(4,4),
+            nn.BatchNorm2d(12),
             nn.ReLU(),
-            nn.Conv2d(12,40,3,1,1),
             nn.MaxPool2d(4,4),
-            nn.ReLU())                        
+            nn.Conv2d(12,20,3,1,1),
+            nn.BatchNorm2d(20),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2),
+            nn.Conv2d(20,40,3,1,1),
+            nn.BatchNorm2d(40),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2))                        
         self.converter = nn.Sequential(
             nn.Linear(40+20, 200),
             nn.ReLU(True),
@@ -327,6 +334,80 @@ class ConvLinConv_3(nn.Module):
         x = x.view(x.size(0), 1, 64, 64)
         x = self.encoder(x)
         x = x.view(x.size(0), 40)
+        y = y.view(y.size(0), 20)
+        x = torch.cat((x, y), 1)
+        x = self.converter(x)
+        x = self.decoder(x.view(x.size(0), 16, 5, 5))
+        x = x.view(x.size(0), 1, 64, 64)
+        return x
+
+
+
+# =============================================================================
+class ConvLinConv_4(nn.Module):
+    def __init__(self):
+        super(ConvLinConv_4, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Conv2d(1,6,3,1,1),               # 6, 64, 64
+            nn.BatchNorm2d(6),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2),                  # 6, 32, 32
+            nn.Conv2d(6,10,3,1,1),              # 10, 32, 32
+            nn.BatchNorm2d(10),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2),                  # 10, 16, 16
+            nn.Conv2d(10,14,3,1,1),             # 14, 16, 16
+            nn.BatchNorm2d(14),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2),                  # 12, 8, 8
+            nn.Conv2d(14,20,3,1,1),             # 20, 8, 8
+            nn.BatchNorm2d(20),
+            nn.ReLU(),
+            nn.MaxPool2d(2,2),                  # 20, 4, 4
+            nn.Conv2d(20,25,3,1,1),             # 25, 4, 4
+            nn.BatchNorm2d(25),
+            nn.ReLU())
+        self.converter = nn.Sequential(
+            nn.Linear((25*4*4)+20, 500),
+            nn.ReLU(True),
+            nn.Dropout(0.2),
+            nn.Linear(500, 1000),
+            nn.ReLU(True),
+            nn.Dropout(0.5),
+            nn.Linear(1000, 2000),
+            nn.ReLU(True),
+            nn.Dropout(0.5),
+            nn.Linear(2000, 2000),
+            nn.ReLU(True),
+            nn.Dropout(0.2),
+            nn.Linear(2000, 1000),
+            nn.ReLU(True),
+            nn.Dropout(0.2),
+            nn.Linear(1000, 16*5*5),
+            nn.ReLU())
+        self.decoder = nn.Sequential(  # x - f + 2p / s = x_out
+            nn.ConvTranspose2d(16,12,2,2,0,0),
+            nn.BatchNorm2d(12),
+            nn.ReLU(True),
+            nn.ConvTranspose2d(12,10,2,2,0,0),
+            nn.BatchNorm2d(10),
+            nn.ReLU(),
+            nn.ConvTranspose2d(10,8,2,2,0,0),
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.ConvTranspose2d(8,6,6,1,0,0),
+            nn.BatchNorm2d(6),
+            nn.ReLU(),
+            nn.ConvTranspose2d(6,4,10,1,0,0),
+            nn.BatchNorm2d(4),
+            nn.ReLU(),
+            nn.ConvTranspose2d(4,1,11,1,0,0),
+            nn.ReLU())
+
+    def forward(self, x, y):
+        x = x.view(x.size(0), 1, 64, 64)
+        x = self.encoder(x)
+        x = x.view(x.size(0), 25*4*4)
         y = y.view(y.size(0), 20)
         x = torch.cat((x, y), 1)
         x = self.converter(x)

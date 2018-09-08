@@ -22,22 +22,16 @@ warnings.filterwarnings("ignore")
 plot_step_images = False
 save_PDF_all_data = True
 create_best_data = False
+select_data = False
 
 device = torch.device('cpu')
 img_size = 64
+dataset = '14_MediumShapeBEST'
 
 
 # =========================== PREPARE DATA ====================================
-#Inputs = torch.from_numpy(np.load('./DATA/01_data_noPress/Images_DataSet.npy'))
-#Labels = torch.from_numpy(np.load('./DATA/01_data_noPress/Labels_DataSet.npy'))
-#Inputs = torch.from_numpy(np.load('./DATA/03_data_new/Images_DataSet.npy'))
-#Labels = torch.from_numpy(np.load('./DATA/03_data_new/Labels_DataSet.npy'))
-#Inputs = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/Inputs_DataSet.npy'))
-#Labels = torch.from_numpy(np.load('./DATA/04_diffShapeBEST/Labels_DataSet.npy'))
-#Inputs = torch.from_numpy(np.load('./DATA/06_noPress_50force/Images_DataSet.npy'))
-#Labels = torch.from_numpy(np.load('./DATA/06_noPress_50force/Labels_DataSet.npy'))
-Labels = torch.from_numpy(np.load('./DATA/07_noPressNewShape/Labels_DataSet.npy'))
-Inputs = torch.from_numpy(np.load('./DATA/07_noPressNewShape/Images_DataSet.npy'))
+Labels = torch.from_numpy(np.load('./DATA/' + dataset + '/Labels_DataSet.npy'))
+Inputs = torch.from_numpy(np.load('./DATA/' + dataset + '/Inputs_DataSet.npy'))
 
 #Inputs = Variable(Inputs.float()).to(device)
 #Labels = Variable(Labels.float()).to(device)
@@ -130,11 +124,11 @@ if save_PDF_all_data == True:
         
         for i in range (nrows):
             for j in range(ncols):
-                out = labels[data_numbers[n], :, :]
+                out = inputs[data_numbers[n], :, :]
                 temp_out = (Variable(out).data).cpu().numpy()
                 ax[i][j].imshow(temp_out.T, extent=(0, img_size, 0, img_size), origin='1')
                 ax[i][j].set_axis_off()
-                ax[i][j].set_title('label idx_{}'.format(data_numbers[n]))
+                ax[i][j].set_title('images idx_{}'.format(data_numbers[n]))
                 ax[i][j].set_xlabel(str(sum_of_img[n]))
                 n += 1
             
@@ -147,10 +141,10 @@ if save_PDF_all_data == True:
         plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
         plt.subplots_adjust(top = 0.8)
         
-        if not os.path.exists('./LABELS_7'):
-            os.mkdir('./LABELS_7')
+        if not os.path.exists('./LABELS_14'):
+            os.mkdir('./LABELS_14')
         
-        fig.savefig('./LABELS_7/all_labels_' + str(batch) + '.pdf')
+        fig.savefig('./LABELS_14/all_images_' + str(batch) + '.pdf')
         
         print(str(batch) + '%')
     print('DONE!')
@@ -160,10 +154,10 @@ if save_PDF_all_data == True:
 # ========================== CREATE NEW DATA ==================================
 if create_best_data == True:
     
-    new_Inputs = np.load('./DATA/01_data_noPress/Images_DataSet.npy')
-    new_Labels = np.load('./DATA/01_data_noPress/Labels_DataSet.npy')
-    new_Params = np.load('./DATA/01_data_noPress/InputParams_matrix.npy')
-    new_FixLoad = np.load('./DATA/01_data_noPress/Input_fix_and_force_matrix.npy')
+    new_Inputs = np.load('./DATA/' + dataset + '/Inputs_DataSet.npy')
+    new_Labels = np.load('./DATA/' + dataset + '/Labels_DataSet.npy')
+    new_Params = np.load('./DATA/' + dataset + '/Params_DataSet.npy')
+    new_FixLoad = np.load('./DATA/' + dataset + '/FixLoads_DataSet.npy')
     
     new_indexes = labels_sum_sorted[1000:, 0]
     new_indexes = new_indexes.astype(np.int64)
@@ -188,13 +182,100 @@ if create_best_data == True:
             pass
         
     
-    ImageFile = './DATA/05_noPressBEST/Inputs_DataSet'
-    LabelFile = './DATA/05_noPressBEST/Labels_DataSet'
-    ParamFile = './DATA/05_noPressBEST/Params_DataSet'
-    FixLoadFile = './DATA/05_noPressBEST/FixLoads_DataSet'
+    new_dataset = '14_MediumShapeBEST'
+    ImageFile = './DATA/' + new_dataset + '/Inputs_DataSet'
+    LabelFile = './DATA/' + new_dataset + '/Labels_DataSet'
+    ParamFile = './DATA/' + new_dataset + '/Params_DataSet'
+    FixLoadFile = './DATA/' + new_dataset + '/FixLoads_DataSet'
     
     np.save(ImageFile, Inputs2)
     np.save(LabelFile, Labels2)
     np.save(ParamFile, Params2)
     np.save(FixLoadFile, FixLoad2)
+    
+    
+    new_Inputs, new_Labels = VF.X_and_Y_channels(Inputs2, Labels2, img_size)
+    np.save('./DATA/' + new_dataset + '/Inputs_3', new_Inputs)
+    np.save('./DATA/' + new_dataset + '/Labels_3', new_Labels)
 
+
+# ========================= Treat Data ========================================
+def treat_data(Images, Labels, Shapes, FixLoads):
+    compt = 0
+#    # REMOVE WHEN Labels != 0 different to Shape
+#    for i in range(10000):
+#        X0 = (Labels[i,0,0] ==0 ).float()
+#        if not torch.equal( X0 +Shapes[i,0,0].float(), torch.ones(64,64)):
+#            Labels[i] = Labels[i-10]
+#            Images[i] = Images[i-10]
+#            Shapes[i] = Shapes[i-10]
+#            FixLoads[i] = FixLoads[i-10]
+#
+#            compt +=1
+#
+#    # REMOVE WHEN Shape to small
+#    for i in range(10000):
+#        if Shapes[i,0,0].sum()  <200.0:
+#
+#            Labels[i] = Labels[i-10]
+#            Images[i] = Images[i-10]
+#            Shapes[i] = Shapes[i-10]
+#            FixLoads[i] = FixLoads[i-10]
+#
+#            compt +=1
+#    # REMOVE WHEN STRESS TOO SMALL
+#    for i in range(10000):
+#        if Labels[i,0,0].sum()  <2000.0:
+#            Labels[i] = Labels[i-10]
+#            Images[i] = Images[i-10]
+#            Shapes[i] = Shapes[i-10]
+#            FixLoads[i] = FixLoads[i-10]
+#
+#            compt +=1
+#
+#
+#    for i in range(10000):
+#        if Labels[i,0,0].sum()  >60000.0:
+#            Labels[i] = Labels[i-10]
+#            Images[i] = Images[i-10]
+#            Shapes[i] = Shapes[i-10]
+#
+#            compt +=1
+#            
+    for i in range(8000):
+        label_max = np.amax((Labels[i,0,0]).cpu().data.numpy())
+        if label_max > 5000:
+            Labels[i] = Labels[i-10]
+            Images[i] = Images[i-10]
+            Shapes[i] = Shapes[i-10]
+            FixLoads[i] = FixLoads[i-10]
+
+#    # REMOVE PLUS 20 TO THE STRESS DISTRIBUTION TO WELL DIFFERENCIATE WITH THE OUTPUT
+#    for i in range(10000):
+#        Labels[i,0,0].float()+X0*20
+#    
+#
+#    # add 100 to stress in the place where is the Shape
+#    Labels = Labels + (Shapes * 50)
+
+
+    #list_to_shuffle = torch.randperm(10000)
+    #Labels = Labels[list_to_shuffle]
+    #Images = Images[list_to_shuffle]
+    #Shapes = Shapes[list_to_shuffle]
+    print("DATA TREATED ! {}% of the data removed".format(compt/10000*100))
+    return Images, Labels, Shapes, FixLoads
+
+if select_data == True:
+
+    Images = torch.from_numpy(np.load('./DATA/10_diffShapesBEST/Params_DataSet.npy'))
+    Labels = torch.from_numpy(np.load('./DATA/10_diffShapesBEST/Labels_DataSet.npy'))
+    Shapes = torch.from_numpy(np.load('./DATA/10_diffShapesBEST/Inputs_DataSet.npy'))
+    FixLoads = torch.from_numpy(np.load('./DATA/10_diffShapesBEST/FixLoads_DataSet.npy'))
+    
+    Params2, Labels2, Inputs2, FixLoads2 = treat_data(Images, Labels, Shapes, FixLoads)
+    
+    np.save('./DATA/10_diffShapesBEST/Inputs_DataSet.npy', Inputs2.cpu().numpy())
+    np.save('./DATA/10_diffShapesBEST/Labels_DataSet.npy', Labels2.cpu().numpy())
+    np.save('./DATA/10_diffShapesBEST/Params_DataSet.npy', Params2.cpu().numpy())
+    np.save('./DATA/10_diffShapesBEST/FixLoads_DataSet.npy', FixLoads2.cpu().numpy())
