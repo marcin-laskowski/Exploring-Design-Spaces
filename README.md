@@ -16,7 +16,7 @@ As far as the neural networks is concerned PyTorch was used as the main framewor
 All results and final reports from the research are available uner the link: [https://laskowskimarcin.com/exploring-design-spaces/](https://laskowskimarcin.com/exploring-design-spaces/)
 
 
-## Files
+## Folders
 - **2D_Data_Generator** - program which allows us to generate input files for the neural network. The basic idea of the process is visualized below.
     <p align="center">
         <img width="650" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/generating_data_complex3.png">
