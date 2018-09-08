@@ -18,22 +18,22 @@ As far as the neural networks is concerned PyTorch will be used as the main fram
 - **2D_Neural_Networks** - folder that consists of files with neural network architectures.
     - **Stage_0** - Stage 0 is based on creating Autoencoders for Images and Labels
     <p align="center">
-        <img width="1000" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/stage_0.jpg">
+        <img width="1000" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/stage_0.png">
     </p>
 
     - **Stage_1_1** - Stage 1_1 is approach during which there was investigated different neural network architectures when as the input we give 3 channels (shape, X-coordinates of Forces, Y-coordinates of forces) with dimensions 64px x 64px and as the output we get stress distribution (1 channel, 64px 64px)
     <p align="center">
-        <img width="1000" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/stage_1_1.jpg">
+        <img width="1000" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/stage_1_1.png">
     </p>
 
     - **Stage_1_2** - Stage 1_2 is approach during which input is pentagon picture (1 x 64 x 64) and output is stress distribution (1 x 64 x 64). However in this approach forces and boundary conditions are added inside neural network.
     <p align="center">
-        <img width="1000" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/stage_1_2.jpg">
+        <img width="1000" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/stage_1_2.png">
     </p>
 
     - **Stage_1_3** - Stage 1_3 is approach during which there was investigated different neural network architectures when as the input we give matrix 5x6 with coordinates of the nodes, forces and fixation points.
     <p align="center">
-        <img width="1000" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/stage_1_3.jpg">
+        <img width="1000" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/stage_1_3.png">
     </p>
 
 - **Report_Generator** - folder with functions needed to automatically generate report after each run of the neural network script.
