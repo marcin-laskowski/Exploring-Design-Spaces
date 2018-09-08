@@ -19,7 +19,7 @@ As far as the neural networks is concerned PyTorch will be used as the main fram
     </p>
     Finally the whole research was performed od three datasets presented below:
     <p align="center">
-        <img width="650" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/dataset5.png">
+        <img width="600" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/dataset5.png">
     </p>
 
 
