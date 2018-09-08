@@ -1,15 +1,19 @@
 # Exploring Design Spaces
-The goal of the project is to explore the design spaces using neural networks, which will be able to predict the functional behavior of the object.
+The goal of the project is to explore the design spaces using neural networks, which will be able to predict the functional behavior of the 2D object.
 
 
 ## Project Specification
-During the first part of the project, an analysis will be carried out to examine different neural network architectures that would act as a model capable of replacing current methods of calculating physical properties such as the Finite Element Method.
+During the first part of the project, an analysis was carried out to examine different neural network architectures that would act as a model capable of replacing current methods of calculating physical properties such as the Finite Element Method.
 
-As a proof of concept, a strength analysis of a 2D plate will be carried out, to which various types of weight will be applied. Output from the neural network will be compared with the output from the FEM software. If that part will work, in the later stage we would like to explore the design space (design and CAD) e.g. by Autoencoders. During the second part of the project we would like to answer two questions: What is the most optimal way to input 3D structure to the network, and what is the most convenient architecture of the Neural Network to operate on the 3D objects.
+The whole project was divided into couple stages where thorough analysis was performed. The research begun with the process of generating data where three datasets was created. This step was very time consuming and very demanding because it was necessary to connect many different environments. Stress distribution was calculated by the Marc Software. However it was necessary to convert input and output files needed for training in the most convenient format for the neural network. That is why special converters was created. After first phase of the project we switched to investigation of different neural networks playing with different types of autoencoders. This analysis was very important at the beginning because it gave us general overview how neural networks behaves on our datasets. During the whole process we also explored how much we can decrease latent spaces for each task. After that task we jumped to the main phase of the project where form shape and boundary conditions (fixation and forces) we want to obtain von Mises stresses of the objects. This phase was performed on three datasets and was and was investigated using four different methods: Stage 1.2, Stage 1.3, Stage 1.4, Stage 1.5.
 
-The part that will be used to prepare training data (3D solids and FEM analysis) will be carried out in the MARC MSC Software. The program is capable of solving nonlinear problems, allows for an easy and quick execution of a fully automated analysis of the deformation of several hundred thousand blocks at the same time.
+<p align="center">
+    <img width="650" src="https://github.com/mlaskowski17/Exploring-Design-Spaces/blob/master/images/project_path.png">
+</p>
 
-As far as the neural networks is concerned PyTorch will be used as the main framework. PyTorch is Python’s library for building Dynamic Computation Graphs, it allows to use dynamic data structures in the middle of the network. This means that we have the opportunity to enter a different number of inputs in any place during the training. In Pytorch, building a network is modular, which means that we implement and debug each one separately.
+As far as the neural networks is concerned PyTorch was used as the main framework. PyTorch is Python’s library for building Dynamic Computation Graphs, it allows to use dynamic data structures in the middle of the network. This means that we have the opportunity to enter a different number of inputs in any place during the training. In Pytorch, building a network is modular, which means that we implement and debug each one separately.
+
+All results and final reports from the research are available uner the link: [https://laskowskimarcin.com/exploring-design-spaces/](https://laskowskimarcin.com/exploring-design-spaces/)
 
 
 ## Files
